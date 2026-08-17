@@ -1,0 +1,166 @@
+﻿@model IEnumerable<AVBDelivery.Models.Order>
+
+@{
+    ViewData["Title"] = $"Сводный заказ на {DateTime.Now.ToString("dd.MM.yyyy")}";
+
+
+    var allItems = new List<OrderItem>();
+
+    foreach (var item in Model)
+    {
+        allItems.AddRange(item.Items);
+    }
+    var tt = allItems.GroupBy(x => x.ProductId);
+    // Объединяем общие позиции
+    Order sumOrder = new();
+    sumOrder.Items = new();
+    sumOrder.Sum = 0;
+    foreach (var item in tt)
+    {
+        OrderItem orderItem = new()
+        {
+            Count = item.Sum(x => x.Count),
+            ProductName = item.FirstOrDefault().ProductName,
+            ProductId = item.FirstOrDefault().ProductId,
+            Price = item.FirstOrDefault().Price,
+            MeasureUnit = item.FirstOrDefault().MeasureUnit
+        };
+        if (orderItem.Count > 0)
+        {
+            sumOrder.Items.Add(orderItem);
+            sumOrder.Sum += orderItem.Price * orderItem.Count;
+        }
+    }
+
+}
+<div class="media">
+    @* <img src="\assets\images\logo-full.png" class="me-3 thumb-md align-self-center rounded" alt="Logo"> *@
+    <div class="media-body align-self-center">
+        <div class="coin-bal">
+            <h1>@($"Сводный заказ на {DateTime.Now.ToString("dd.MM.yyyy")}")</h1>
+        </div>
+    </div><!--end media body-->
+</div><!--end media-->
+
+<div class="row">
+    @foreach (var order in Model)
+    {
+        <div class="col-lg-4">
+            <div class="card ">
+                <div class="card-header">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <div class="media">
+                                <div class="media-body align-self-center">
+                                    <h5 class="m-0 font-15">@order.UserId</h5>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md">
+                            <table class="table table-striped table-sm table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>Название</th>
+                                        <th>Единица измерения</th>
+                                        <th>Кол-во</th>
+                                        <th>Сумма</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var nomenclature in order.Items)
+                                    {
+                                        <tr>
+                                            <td>
+                                                @nomenclature.ProductName
+                                            </td>
+                                            <td>
+                                                @nomenclature.MeasureUnit
+                                            </td>
+                                            <td>
+                                                @nomenclature.Count
+                                            </td>
+                                            <td>
+                                                @($"{nomenclature.Price* nomenclature.Count}  ₽")
+                                            </td>
+                                        </tr>
+                                    }
+                                    <tr>
+                                        <td>
+                                            <b>Итого:</b>
+                                        </td>
+                                        <td>
+                                        </td>
+                                        <td>
+                                            <b>@order.Sum   ₽</b>
+                                        </td>
+                                    </tr>
+
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+<h2>Общий список товаров</h2>
+<div class="row">
+    <div class="card ">
+        <div class="col-md">
+            <table class="table table-striped table-sm table-bordered">
+                <thead>
+                    <tr>
+                        <th>Название</th>
+                        <th>Единица измерения</th>
+                        <th>Количество</th>
+                        <th>Сумма</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var nomenclature in sumOrder.Items)
+                    {
+                        <tr>
+                            <td>
+                                @nomenclature.ProductName
+                            </td>
+                            <td>
+                                @nomenclature.MeasureUnit
+                            </td>
+                            <td>
+                                @nomenclature.Count
+                            </td>
+                            <td>
+                                @($"{nomenclature.Price* nomenclature.Count}  ₽")
+                            </td>
+                        </tr>
+                    }
+
+                    <tr>
+                        <td>
+                            <b>Итого:</b>
+                        </td>
+                        <td>
+
+                        </td>
+                        <td>
+                            <b>@sumOrder.Items.Sum(x => x.Count) порц.</b>
+                        </td>
+                        <td>
+                            <b>@sumOrder.Sum   ₽</b>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<button type="button" class="btn btn-primary d-print-none " onclick="window.print()">Печать</button>
+
+
+

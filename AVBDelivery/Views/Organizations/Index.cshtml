@@ -1,0 +1,85 @@
+﻿@model AVBDelivery.ViewModels.OrganizationsViewModel
+
+@{
+    ViewData["Title"] = "Index";
+}
+
+<a class="btn btn-sm btn-primary" asp-action="Create" asp-route-userid="@ViewBag.UserId">Добавить организацию</a>
+
+<h1>Организации</h1>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                Название
+            </th>
+            <th>
+                ИНН
+            </th>
+            <th>
+                Адрес доставки
+            </th>
+            <th>
+                Время доставки в будние
+            </th>
+            <th>
+                Время доставки в выходные
+            </th>
+            <th>
+                Существует в AmoCRM
+            </th>
+            <th>
+                Скидка
+            </th>
+            <th>
+                Примечание
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (Model.Organizations != null){
+            @foreach (var item in Model.Organizations)
+            {
+                <tr>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.Name)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.Inn)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.DeliveryAddress)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.DeliveryTime)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.DeliveryWeekendTime)
+                    </td>
+                    <td>
+                        @(string.IsNullOrEmpty(item.AmoCrmId) ? "Нет" : "Да")
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.Discount)%
+                    </td>
+                    <td>
+
+                    </td>
+                    <td>
+                        <form asp-action="Delete" asp-route-userid="@Model.UserId" asp-route-organizationid="@item.OrganizationId" method="post">
+                            <a class="btn btn-sm btn-primary" asp-action="EditOrganization" asp-route-userid="@Model.UserId" asp-route-organizationid="@item.OrganizationId">Изменить</a>
+                            <button type="submit" class="btn btn-sm btn-danger">
+                                Удалить
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        }
+        
+    </tbody>
+</table>
+
+

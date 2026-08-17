@@ -1,0 +1,143 @@
+﻿@model IEnumerable<AVBDelivery.Models.Nomenclature>
+
+@{
+    ViewData["Title"] = "Заказ блюд";
+}
+
+<h1>Заказ блюд</h1>
+
+
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Название</th>
+                                <th>Цена</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var nomenclature in Model)
+                            {
+                                @foreach (var prodGroup in nomenclature.ProductGroup.OrderBy(o => o.GroupName).ToList())
+                                {
+                                    <tr>
+                                        <td colspan="3" class="fs-2">
+                                            @prodGroup.GroupName
+                                        </td>
+                                    </tr>
+                                    @foreach (var prodItem in prodGroup.Products.OrderBy(o => o.Name).ToList())
+                                    {
+                                        <tr>
+                                            <td>
+                                                @prodItem.Name
+                                            </td>
+                                            <td>
+                                                @prodItem.Price  ₽
+                                            </td>
+                                            <td id="@prodItem.Id" class="w-25">
+                                                <button type="button" class="btn btn-primary w-50" onclick="addProductToCart('@prodItem.Id', 1)">В корзину</button>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Количество позиций в заказе
+    let countInCart = 0;
+
+    const cartJSON = JSON.parse('{"shoppingCart":[]}');
+
+
+
+
+    // Добавление позиции
+    async function addProductToCart(Id, Count) {
+
+
+        const response = await fetch("api/ShoppingCarts", {
+            method: "POST",
+            headers: { "Accept": "application/json", "Content-Type": "application/json" },
+            body: JSON.stringify({
+                ProductId: Id,
+                Count: Count,
+            })
+        });
+        if (response.ok === true) {
+            document.getElementById('countInCart').innerHTML = countInCart;
+            document.getElementById('countInCart2').innerHTML = countInCart;
+
+            cartJSON["shoppingCart"].push({ id: Id });
+            const data = await response.json();
+
+
+            let cart = document.getElementsByClassName('simplebar-content')[1];
+
+            cart.innerHTML = "";
+            document.getElementById('countInCart').innerHTML = data.length;
+            document.getElementById('countInCart2').innerHTML = data.length;
+
+            for (let i = 0; i < data.length; i++) {
+                let newItem = '<a class="dropdown-item py-3" >\
+                            <small class="float-end text-muted ps-2">' + data[i].price * data[i].count + ' ₽</small>\
+                            <div class="media">\
+                                <div class="media-body align-self-center ms-2 text-truncate">\
+                                    <h6 class="my-0 fw-normal text-dark">' + data[i].productName + '</h6>\
+                                    <small class="text-muted mb-0">' + data[i].count + ' порц.</small>\
+                                </div>\
+                            </div>\
+                        </a > ';
+                cart.innerHTML = cart.innerHTML + newItem;
+            }
+
+            let cartCount = '';
+            if (Count == 0.5) {
+                
+                let dsfsdfsdf = document.getElementById('input-' + Id);
+                Count = dsfsdfsdf.value + 0.5;
+
+                document.getElementById('input-' + Id).stepUp();
+
+                //dsfsdfsdf.value = Count;
+
+            } else if (Count == -0.5) {
+                let dsfsdfsdf = document.getElementById('input-' + Id);
+                Count = dsfsdfsdf.value - 0.5;
+
+                document.getElementById('input-' + Id).stepDown();
+                //dsfsdfsdf.value = Count;
+            } else {
+                cartCount = '<div class="input-group qty-icons w-50">\
+                <button class="btn btn-primary" onclick="addProductToCart(\'' + Id + '\', -0.5)">-</button>\
+                <input id="input-' + Id + '" type="number" class="form-control text-center" min="0" name="quantity" value="' + Count + '" step="0.5" style="pointer-events: none;">\
+                    <button class="btn btn-primary" onclick="addProductToCart(\'' + Id + '\', 0.5)">+</button>\
+                </div>';
+
+                document.getElementById(Id).innerHTML = cartCount;
+
+            }
+
+
+
+
+        }
+        else {
+            const error = await response.json();
+            console.log(error.message);
+        }
+    }
+</script>
+

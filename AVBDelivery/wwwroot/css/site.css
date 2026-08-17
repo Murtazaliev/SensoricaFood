@@ -1,0 +1,72 @@
+﻿/* Please see documentation at https://docs.microsoft.com/aspnet/core/client-side/bundling-and-minification
+for details on configuring this project to bundle and minify static web assets. */
+
+
+.currDate {
+    color: #73BF69;
+    font-size: 24px;
+}
+.lflDate {
+    color: #F2CC0C;
+    font-size: 20px;
+}
+.arrow {
+    font-size: 60px;
+}
+.product-name{
+    min-height: 100px
+}
+/* Телефоны: уменьшаем “воздух” и шрифты */
+@media (max-width: 576px) {
+
+    .product-card .card-body {
+        padding: .5rem !important;
+    }
+
+    .product-card h5 {
+        font-size: .95rem !important;
+        margin-bottom: .25rem !important;
+    }
+
+    .product-card p {
+        font-size: .80rem !important;
+        margin-bottom: .25rem !important;
+    }
+
+    .product-card h4 {
+        font-size: 1rem !important;
+        margin: .25rem 0 !important;
+    }
+
+    .product-card .btn {
+        padding: .35rem .5rem !important;
+        font-size: .85rem !important;
+    }
+
+    .product-card .form-control {
+        padding: .25rem .4rem !important;
+        font-size: .85rem !important;
+    }
+}
+
+.product-card .carousel-control-prev,
+.product-card .carousel-control-next {
+    width: 48px !important;
+    opacity: 1 !important;
+}
+
+.product-card .carousel-control-prev-icon,
+.product-card .carousel-control-next-icon {
+    width: 2.4rem !important;
+    height: 2.4rem !important;
+    border-radius: 50% !important;
+    background-color: rgba(0, 0, 0, 0.8) !important;
+    background-size: 55% 55% !important;
+}
+
+.product-card .carousel-control-prev:hover .carousel-control-prev-icon,
+.product-card .carousel-control-next:hover .carousel-control-next-icon {
+    background-color: rgba(0, 0, 0, 0.65);
+}
+
+

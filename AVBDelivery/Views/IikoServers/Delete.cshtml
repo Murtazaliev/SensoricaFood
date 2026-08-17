@@ -1,0 +1,51 @@
+﻿@model AVBDelivery.Models.IikoServer
+
+@{
+    ViewData["Title"] = "Удалить";
+}
+
+<h1>Удалить</h1>
+
+<h3>Вы действительно хотите удалить эти данные?</h3>
+<div>
+    <h4>Подключение к iikoServer</h4>
+    <hr />
+    <dl class="row">
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Server)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.Server)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.UseHttps)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.UseHttps)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Port)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.Port)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Path)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.Path)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.iikoLogin)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.iikoLogin)
+        </dd>
+    </dl>
+    
+    <form asp-action="Delete">
+        <input type="hidden" asp-for="Id" />
+        <input type="submit" value="Удалить" class="btn btn-danger" /> |
+        <a asp-action="Index">К списку серверов</a>
+    </form>
+</div>

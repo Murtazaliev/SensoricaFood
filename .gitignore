@@ -1,0 +1,22 @@
+## .NET Build Results
+[Bb]in/
+[Oo]bj/
+
+## Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+## NLog / runtime logs
+Logs/
+*.log
+
+## Misc
+*.swp
+*.*~
+~$*
+
+## User-specific / runtime config
+appsettings.Local.json

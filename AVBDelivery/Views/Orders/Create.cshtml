@@ -1,0 +1,432 @@
+﻿@model AVBDelivery.ViewModels.OrderCreateViewModel
+
+@{
+    ViewData["Title"] = "Оформить заказ";
+}
+
+<h1>Заказ</h1>
+
+<hr />
+<div asp-validation-summary="All" class="text-danger"></div>
+<form asp-action="Create" method="post" onsubmit="return handleSubmit();">
+    <div class="row">
+        <div class="col">
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+
+                        @if (Model.Order.ValidateErrors != null)
+                        {
+                            @foreach (var item in Model.Order.ValidateErrors)
+                            {
+                                <div class="alert alert-danger border-0" role="alert">
+                                    <strong>@item</strong>
+                                </div>
+                            }
+                        }
+                        @if (Model.NotAddedItems != null && Model.NotAddedItems?.Count != 0)
+                        {
+                            <div class="alert alert-danger border-0" role="alert">
+                                <strong>Позиции не были добавлены в корзину (отсутствуют в amoCRM)</strong>
+                            </div>
+                            <ul class="list-group">
+                                @foreach (var item in Model.NotAddedItems)
+                                {
+                                    <li class="list-group-item list-group-item-danger">
+                                        <strong>@item</strong>
+                                    </li>
+                                }
+                            </ul>
+                            
+                        }
+                        <table id="cartTable" class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Название</th>
+                                    <th>Единица измерения</th>
+                                    <th>Цена</th>
+                                    <th>Количество</th>
+                                    <th>Сумма</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                
+                                @for (int i = 0; i < Model?.Order?.Items?.Count; i++)
+                                {
+                                    OrderItem? item = Model.Order.Items[i];
+                                  
+                                    <tr id="@item.ProductId">
+                                        <td>
+                                            @item.ProductName
+                                        </td>
+                                        <td>
+                                            @item.MeasureUnit
+                                        </td>
+                                        <td>
+                                            @item.Price 
+                                        </td>
+
+                                        <td>
+                                            <input type="number"
+                                                   name="Items[@i].Count"
+                                                   min="1"
+                                                   max="99999"
+                                                   value="@item.Count"
+                                                   class="form-control"
+                                                   onblur='handleCountChange(@Html.Raw(JsonConvert.SerializeObject(item)), this)'
+                                                   oninput="this.value = this.value.slice(0, 5)" />
+                                        </td>
+                                        <td>
+                                            <p id="@item.ProductId-itemSum">@(item.Price * item.Count) ₽</p>
+                                        </td>
+                                        <td>
+                                            <a href="#" onclick="deleteItem(event, @item.ProductId)" class="text-dark">
+                                                <i class="mdi mdi-close-circle-outline font-18"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                                <tr>
+                                    <td colspan="4">
+                                        <b>Подытог:</b>
+                                    </td>
+                                    <td>
+                                        <b id="subTotal">@Model.Order.Sum</b><b>₽</b>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td colspan="4">
+                                        <b>Скидка:</b>
+                                    </td>
+                                    <td>
+                                        <b id="discount">0</b><b>%</b>
+                                    </td>
+                                </tr>
+                                <tr id="summary">
+                                    <td colspan="4">
+                                        <b>Итого:</b>
+                                    </td>
+                                    <td>
+                                        <b id="orderSum">@Model.Order.Sum</b><b>₽</b>
+                                    </td>
+                                </tr>
+
+                            </tbody>
+                        </table>
+                    </div>
+
+                 
+                    
+                
+                    
+
+
+                </div>
+            </div>
+        </div>
+    </div>
+    <input type="hidden" asp-for="Order.UserId"/>
+    @if (Model.Dates != null){
+        <div class="row justify-content-md-center">
+            <div class="col-md-auto">
+                <label for="Order.DeliveryDate">Дата доставки</label>
+
+                <select class="form-select" asp-for="Order.DeliveryDate">
+                    @foreach (var item in Model.Dates)
+                    {
+                        <option value="@item">@item.ToString("dd.MM.yyyy")</option>
+                    }
+                </select>
+                <span asp-validation-for="Order.DeliveryDate" />
+            </div>
+        </div>
+    }
+    
+    @if (Model.Organizations != null){
+        <div class="row justify-content-md-center">
+            <div class="col-md-auto">
+                <label for="Order.OrganizationId">Организация</label>
+                <select id="selectedOrg" onchange="checkIfCanCreateOrder(this.value)" class="form-select" asp-for="Order.OrganizationId">
+                    <option value="-">-</option>
+                    @foreach (var item in Model.Organizations)
+                    {
+                        <option value="@item.OrganizationId">@item.DeliveryAddress</option>
+                    }
+                </select>
+                <span asp-validation-for="Order.OrganizationId" />
+            </div>
+        </div>
+        <div class="row justify-content-md-center">
+            <div class="col-md-auto">
+                <p id="deliveryTime"></p>
+            </div>
+        </div>
+        <div class="row justify-content-md-center">
+            <div class="col-md-auto">
+                <p id="deliveryWeekendTime"></p>
+            </div>
+        </div>
+        <div class="row justify-content-md-center">
+            <div class="col-md-auto">
+                <p id="comment"></p>
+            </div>
+        </div>
+        <div class="row justify-content-md-center">
+            <div class="col-md-auto">
+                <p id="minsum"></p>               
+            </div>
+        </div>
+    }
+    
+    
+
+
+
+
+    <div class="row">
+        <div class="col-sm-12 text-center form-group">
+            <div>
+                <span asp-validation-for="Order.UserId" class="text-danger"></span>
+            </div>
+            @* <input id="submitbutton" disabled="disabled" onClick="this.form.submit(); this.disabled=true; this.value='Отправка…';" type="submit" value="Заказать" class="btn btn-primary" /> *@
+            <button id="submitbutton" type="submit" class="btn btn-primary">
+                Заказать
+            </button>
+        </div>
+    </div>
+
+</form>
+
+
+@using Newtonsoft.Json
+<script>
+    let orderItems = @Html.Raw(JsonConvert.SerializeObject(Model.Order.Items));
+</script>
+<script>
+    function calculateDiscount(discount) {
+        let discountValue = 1.0 - ((discount ?? 0) / 100);
+        return Math.max(0, Math.min(1, discountValue));
+    }
+</script>
+<script>
+
+    
+
+    function handleSubmit() {
+      const button = document.getElementById('submitbutton');
+      button.disabled = true;
+      button.innerHTML = 'Отправка… <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+      return true;
+    }
+
+        document.addEventListener("DOMContentLoaded", function () {
+      // Если есть ошибки валидации/алерты — разблокируем кнопку обратно
+      const hasValidationSummary = document.querySelector('[asp-validation-summary], .validation-summary-errors, .text-danger')?.innerText?.trim().length > 0;
+      const hasDangerAlerts = document.querySelectorAll('.alert.alert-danger').length > 0;
+
+      if (hasDangerAlerts || hasValidationSummary) {
+        const button = document.getElementById('submitbutton');
+        if (button) {
+          button.disabled = false;
+          button.innerHTML = 'Заказать';
+        }
+      }
+    });
+
+    let saveCartTimeout = null;
+
+    function handleCountChange(item, inputElem) {
+        let newCount = parseInt(inputElem.value);
+        if (isNaN(newCount) || newCount < 0) {
+            newCount = 0;
+            inputElem.value = newCount;
+        }
+
+        // обновляем локальный массив orderItems
+        const index = orderItems.findIndex(i => i.ProductId === item.ProductId);
+        if (index !== -1) {
+            orderItems[index].Count = newCount;
+        }
+
+        // обновляем объект item (который был сериализован в Razor)
+        item.Count = newCount;
+
+        // визуально перерисовываем строку
+        const itemSumElement = document.getElementById(`${item.ProductId}-itemSum`);
+        if (itemSumElement) {
+            const newSum = item.Price * item.Count;
+            itemSumElement.innerText = `${newSum} ₽`;
+        }
+
+        updateOrderTotals(item.ProductId, item);
+
+        scheduleCartSave();
+    }
+
+    function scheduleCartSave() {
+        if (saveCartTimeout) {
+            clearTimeout(saveCartTimeout);
+        }
+
+        // например, ждём 400 мс после последнего изменения
+        saveCartTimeout = setTimeout(saveCartToServer, 400);
+    }
+
+    async function saveCartToServer() {
+        try {
+            const response = await fetch("/api/ShoppingCarts/Update", {
+                method: "POST",
+                headers: {
+                    "Accept": "application/json",
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(orderItems)
+            });
+
+            if (!response.ok) {
+                console.error("Failed to save cart:", await response.text());
+            } else {
+                // при желании можно взять нормализованные данные с сервера:
+                // const serverCart = await response.json();
+                // orderItems = serverCart;
+            }
+        } catch (e) {
+            console.error("Failed to save cart", e);
+        }
+    }
+
+
+
+
+
+    async function updateProductInCart(oldCount, shoppingCartItem) {
+
+        console.log("Updating cart item:", shoppingCartItem);
+        if (shoppingCartItem.Count > 0){
+
+              let difference = shoppingCartItem.Count - oldCount;
+              let id = shoppingCartItem.ProductId;
+              console.log("changing quantity: ", difference, "on cart: ", id);
+
+            const itemSumElement = document.getElementById(`${shoppingCartItem.ProductId}-itemSum`);
+            if (itemSumElement) {
+                const newSum = shoppingCartItem.Price * shoppingCartItem.Count;
+                itemSumElement.innerText = `${newSum} ₽`;
+            }
+
+            updateOrderTotals(shoppingCartItem.ProductId, shoppingCartItem);
+        }
+    }
+
+    function updateOrderTotals(changedProductId, changedItem) {
+
+        const index = orderItems.findIndex(i => i.ProductId === changedProductId);
+        if (index !== -1) {
+            orderItems[index].Count = changedItem.Count;
+        }
+
+
+        const total = orderItems.reduce((sum, item) => sum + item.Price * item.Count, 0);
+
+
+        document.getElementById("subTotal").innerText = total.toFixed();
+        document.getElementById("orderSum").innerText = total.toFixed();
+        var selectItem = document.getElementById("selectedOrg");
+        var options = selectItem.options;
+        var selectedItem = options[options.selectedIndex].value;
+        checkIfCanCreateOrder(selectedItem);
+    }
+
+
+    async function deleteItem(event = null, productId){
+            console.log("Получили запрос при Id=" + productId);
+            if (event) {
+                event.preventDefault();
+            }
+            const response = await fetch("/api/ShoppingCarts/" + productId, {
+                method: "DELETE",
+                headers: { "Accept": "application/json", "Content-Type": "application/json" }
+            });
+            console.log(response);
+            if (response.ok === true) {
+                var row = document.getElementById(productId);
+                var itemSumTd = document.getElementById(productId+"-itemSum").innerText;
+                var itemSum = parseFloat(itemSumTd.replace(" ₽",""));
+                row.parentNode.removeChild(row);
+                var subTotal = parseFloat(document.getElementById("subTotal").innerText);
+                var newSum = subTotal - itemSum;
+                document.getElementById("subTotal").innerText = newSum;
+                document.getElementById("orderSum").innerText = newSum;
+                var selectItem = document.getElementById("selectedOrg");
+                var options = selectItem.options;
+                var selectedItem = options[options.selectedIndex].value;
+                console.log(orderItems);
+                orderItems = orderItems.filter(function(item){
+                    return item.ProductId.toString() !== productId.toString();
+                });
+                console.log(orderItems);
+                scheduleCartSave();
+                checkIfCanCreateOrder(selectedItem);
+            }
+    }
+
+    async function checkIfCanCreateOrder(value)
+    {
+        console.log("Items:", orderItems);
+
+        let totalSum = 0;
+        orderItems.forEach(item => {
+            totalSum += item.Price * item.Count;
+        });
+
+        
+
+        if (value == '-')
+        {
+            document.getElementById('submitbutton').disabled = true;
+            document.getElementById('minsum').textContent = '';
+            document.getElementById('comment').textContent = '';
+            document.getElementById('deliveryTime').textContent = '';
+            document.getElementById('deliveryWeekendTime').textContent = '';
+            document.getElementById('discount').textContent = 0;
+            document.getElementById('orderSum').textContent = totalSum;
+        }
+        else
+        {
+            const response = await fetch("/api/organizationsapi/" + value, {
+                method: "GET",
+                headers: { "Accept": "application/json", "Content-Type": "application/json" }
+            });
+
+            if (response.ok == true){
+                const data = await response.json();
+                let discountedSum = totalSum*calculateDiscount(data.discount);
+                discountedSum = discountedSum.toFixed(0);
+                document.getElementById('minsum').textContent = 'МИНИМАЛЬНАЯ СУММА ЗАКАЗА: ' + data.minimalSum;
+                document.getElementById('comment').textContent = 'Комментарий: ' + data.comment;
+                document.getElementById('deliveryTime').textContent = 'Время доставки (будни): ' + data.deliveryTime;
+                document.getElementById('deliveryWeekendTime').textContent = 'Время доставки (выходные): ' + data.deliveryWeekendTime;
+                if (data.discount != null) {
+                    document.getElementById('discount').textContent = data.discount;
+                    document.getElementById('orderSum').textContent = discountedSum;
+                }
+                else {
+                    document.getElementById('discount').textContent = 0;
+                    document.getElementById('orderSum').textContent = totalSum;
+                }
+                var orderSum = parseFloat(document.getElementById("orderSum").innerText);
+                var minSum = parseFloat(data.minimalSum);
+                if (orderSum > minSum){
+                    document.getElementById('submitbutton').disabled = false;
+                }
+                else
+                {
+                    document.getElementById('submitbutton').disabled = true;
+                }
+                
+            }
+        }
+        
+    }
+</script>

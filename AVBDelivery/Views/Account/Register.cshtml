@@ -1,0 +1,66 @@
+﻿@model AVBDelivery.ViewModels.RegisterViewModel
+<!-- Log In page -->
+<div class="container-md" style="background-image: url('~/assets/images/p-1.png'); background-size: cover; background-position: center center;">
+    <div class="row d-flex justify-content-center">
+        <div class="col-12 align-self-center">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-lg-4 mx-auto">
+                        <div class="card">
+                            <div class="card-body p-0 auth-header-box">
+                                <div class="text-center p-3">
+                                    <a href="/" class="logo logo-admin">
+                                        @* <img src="~/assets/images/logo-sm.png" height="50" alt="logo" class="auth-logo"> *@
+                                    </a>
+                                    <h4 class="mt-3 mb-1 fw-semibold text-muted font-18">Добро пожаловать в AVB Delivery</h4>
+                                    <p class="text-muted  mb-0">Зарегистрируйтесь, чтобы воспользоваться AVB Delivery.</p>
+                                </div>
+                            </div>
+                            <div class="card-body pt-0">
+                                <form class="my-4" method="post" asp-controller="Account" asp-action="Register">
+                                    <div asp-validation-summary="ModelOnly"></div>
+                                    <div class="form-group mb-2">
+                                        <label class="form-label" asp-for="Email">Email</label>
+                                        <input class="form-control" asp-for="Email" placeholder="Введите Email">
+                                        <span asp-validation-for="Email"></span>
+                                    </div><!--end form-group-->
+
+                                    <div class="form-group mb-2">
+                                        <label class="form-label" asp-for="Password"></label>
+                                        <input class="form-control" asp-for="Password" placeholder="Введите пароль">
+                                        <span asp-validation-for="Password"></span>
+                                    </div><!--end form-group-->
+
+                                    <div class="form-group mb-2">
+                                        <label class="form-label" asp-for="PasswordConfirm"></label>
+                                        <input type="password" class="form-control" asp-for="PasswordConfirm" placeholder="Повторите пароль">
+                                        <span asp-validation-for="PasswordConfirm"></span>
+                                    </div><!--end form-group-->
+
+                                    <div class="form-group row mt-3">
+                                        <div class="col-12">
+                                            <div class="form-check form-switch form-switch-success">                                                
+                                                <label class="form-check-label" for="customSwitchSuccess">Нажимая «Зарегистрироваться», вы принимаете следующие <a href="#" class="text-primary">Условия использования</a></label>
+                                            </div>
+                                        </div><!--end col-->
+                                    </div><!--end form-group-->
+
+                                    <div class="form-group mb-0 row">
+                                        <div class="col-12">
+                                            <div class="d-grid mt-3">
+                                                <button class="btn btn-primary" type="submit">Зарегистрироваться <i class="fas fa-sign-in-alt ms-1"></i></button>
+                                            </div>
+                                        </div><!--end col-->
+                                    </div> <!--end form-group-->
+                                </form><!--end form-->
+                                <div class="m-3 text-center text-muted">
+                                    <p class="mb-0">Уже зарегистрированы?<a href="/Account/Login" class="text-primary ms-2">Войти</a></p>
+                                </div>
+                            </div><!--end card-body-->
+                        </div><!--end card-->
+                    </div><!--end col-->
+                </div><!--end row-->
+            </div><!--end card-body-->
+        </div><!--end col-->
+    </div><!--end row-->
+</div><!--end container-->

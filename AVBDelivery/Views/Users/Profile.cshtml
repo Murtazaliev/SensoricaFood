@@ -1,0 +1,88 @@
+﻿@model AVBDelivery.ViewModels.ProfileViewModel
+@{
+    ViewBag.Title = "Профиль";
+}
+
+<h1>Профиль</h1>
+@if (Model.Contact != null)
+{
+    <h5>Контакт</h5>
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="met-profile">
+                        <div class="col-lg-4 align-self-center mb-3 mb-lg-0">
+                            <div class="met-profile-main">
+                                <div class="met-profile_user-detail">
+                                    <h5 class="met-user-name">@Model.Contact.Name</h5>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 align-self-center">
+                            <ul class="list-unstyled personal-detail mb-0">
+                                <li>
+                                    <i class="las la-phone mr-2 text-secondary font-22 align-middle"></i>
+                                    <b>Телефон:</b>
+                                    @Model.PhoneNumber
+                                </li>
+                                <li class="mt-2">
+                                    <i class="las la-envelope text-secondary font-22 align-middle mr-2"></i>
+                                    <b>Почта:</b>
+                                    @Model.Email
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @if (Model.Contact.Organizations != null && Model.Contact.Organizations.Any())
+            {
+                <h5>Организации</h5>
+                foreach (var organization in Model.Contact.Organizations)
+                {
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="met-profile">
+                                <div class="col-lg-4 align-self-center mb-3 mb-lg-0">
+                                    <div class="met-profile-main">
+                                        <div class="met-profile_user-detail">
+                                            <h5 class="met-user-name">@organization.Name</h5>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-lg-4 align-self-center">
+                                    <ul class="list-unstyled personal-detail mb-0">
+                                        <li>
+                                            <i class="las la-phone mr-2 text-secondary font-22 align-middle"></i>
+                                            <b>Телефон:</b>
+                                            @organization.PhoneNumber
+                                        </li>
+                                        <li>
+                                            <b>Минимальная сумма заказа:</b>
+                                            @(@organization.MinimalSum ?? 0)
+                                        </li>
+                                        <li>
+                                            <b>Адрес доставки:</b>
+                                            @organization.DeliveryAddress
+                                        </li>
+                                        <li>
+                                            <b>Период доставки (будни):</b>
+                                            @organization.DeliveryTime
+                                        </li>
+                                        <li>
+                                            <b>Период доставки (выходные):</b>
+                                            @organization.DeliveryWeekendTime
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+                
+            }
+            
+        </div>
+    </div>
+}

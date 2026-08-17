@@ -1,0 +1,140 @@
+﻿@model AVBDelivery.ViewModels.ProductListViewModel
+
+@{
+    ViewData["Title"] = "Заказ блюд";
+}
+
+@if (Model.SiteAnnouncement?.IsEnabled == true
+   && !string.IsNullOrWhiteSpace(Model.SiteAnnouncement.Text))
+{
+    <div class="alert alert-info d-flex align-items-start gap-2 mb-3 py-3" role="alert">
+        <div class="fw-semibold fs-5">📢</div>
+        <div class="flex-grow-1 fs-5">
+            <div style="white-space: pre-line;">@Model.SiteAnnouncement.Text</div>
+        </div>
+    </div>
+}
+
+<h1>Заказ блюд</h1>
+<div id="globalDescriptionAccordion"></div>
+<div class="accordion" id="accordionMain">
+    @foreach (var prodGroup in Model.NomenclatureList.ProductGroup.OrderBy(o => o.GroupName).ToList())
+    {
+        <div class="accordion-item">
+            <h5 class="accordion-header m-0">
+                <button class="accordion-button fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-@prodGroup.Id" aria-expanded="true" aria-controls="collapse-@prodGroup.Id">
+                    @prodGroup.GroupName
+                </button>
+            </h5>
+            <div id="collapse-@prodGroup.Id" class="accordion-collapse collapse" aria-labelledby="heading-@prodGroup.Id" data-bs-parent="#accordionMain" style="">
+                <div class="accordion-body">
+                    <div class="row">
+                        @foreach (var prodItem in prodGroup.Products.Where(x => x.IsActive == true).OrderBy(o => o.Name).ToList())
+                        {
+                            <div class="col-md-3">
+                                <div class="card product-card">
+                                    <div class="card-body">
+                                        @{
+                                            var indexes = (Model.ProductImageIndexes != null
+                                            && Model.ProductImageIndexes.TryGetValue(prodItem.Id, out var idx)
+                                            && idx != null && idx.Count > 0)
+                                            ? idx
+                                            : new List<int> { 0 };
+
+                                            var carouselId = $"carousel-{prodItem.Id}";
+                                        }
+
+                                        <div style="aspect-ratio: 4 / 3; width: 100%;">
+                                            <div id="@carouselId" class="carousel slide" data-bs-ride="false" style="width:100%; height:100%;">
+                                                <div class="carousel-inner" style="width:100%; height:100%;">
+                                                    @for (int i = 0; i < indexes.Count; i++)
+                                                    {
+                                                        var n = indexes[i];
+                                                        <div class="carousel-item @(i == 0 ? "active" : "")" style="width:100%; height:100%;">
+                                                            <img src="@Url.Action("RenderImage", "ProductList", new { id = prodItem.Id, n = n })"
+                                                                 class="d-block w-100"
+                                                                 loading="lazy"
+                                                                 style="width:100%; height:100%; object-fit:cover;"
+                                                                 alt="" />
+                                                        </div>
+                                                    }
+                                                </div>
+
+                                                @* Кнопки показываем только если картинок больше одной *@
+                                                @if (indexes.Count > 1)
+                                                {
+                                                    <button class="carousel-control-prev" type="button" data-bs-target="#@carouselId" data-bs-slide="prev">
+                                                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                                        <span class="visually-hidden">Предыдущая</span>
+                                                    </button>
+                                                    <button class="carousel-control-next" type="button" data-bs-target="#@carouselId" data-bs-slide="next">
+                                                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                                        <span class="visually-hidden">Следующая</span>
+                                                    </button>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div style="min-height: 50px">
+                                            <h5>@prodItem.Name</h5>                                         
+                                        </div>
+                                        <p class="text-muted mb-2">@prodGroup.GroupName</p>
+                                        <div class="d-flex justify-content-between align-items-center">                                            
+                                            <div>
+                                                <p>@(prodItem.MeasureUnit ?? "шт")</p>
+                                                <p class="text-muted mb-2">КБЖУ: @prodItem.FullEnergy</p>
+                                            </div>
+                                            <div>                                              
+                                                <p class="text-muted mb-2">@prodItem.PortionGram г.</p>
+                                                <h4 class="text-dark mt-0 mb-2">@string.Format("{0} ₽", @prodItem.Price)</h4>
+                                            </div>
+                                        </div>
+                                        <div class="accordion-item">
+                                            <p class="accordion-header m-0">
+                                                <button class="accordion-button fw-semibold collapsed" type="button"
+                                                        data-bs-toggle="collapse"
+                                                        data-bs-target="#description-@prodItem.Id"
+                                                        aria-expanded="false"
+                                                        aria-controls="description-@prodItem.Id">
+                                                    Описание
+                                                </button>
+                                            </p>
+                                            <div id="description-@prodItem.Id"
+                                                 class="accordion-collapse collapse"
+                                                 data-bs-parent="#globalDescriptionAccordion">
+                                                <div class="accordion-body">
+                                                    <p>@prodItem.Description</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="d-grid" id="@prodItem.Id">
+                                            @if (Model.Order == null)
+                                            {
+                                                <button type="button" class="btn btn-primary" onclick="addProductToCart('@prodItem.Id', 1)">В корзину</button>
+                                            }
+                                            else
+                                            {
+                                                @if (Model.Order.Items.FirstOrDefault(x => x.ProductId == prodItem.Id) != null)
+                                                {
+                                                    <div class="input-group qty-icons">
+                                                        <button class="btn btn-primary" onclick="addProductToCart('@prodItem.Id', -1)">-</button>
+                                                        <input id="input-@prodItem.Id" type="number" class="form-control text-center" min="0" name="quantity" value="@Model.Order.Items.FirstOrDefault(x => x.ProductId == prodItem.Id).Count.ToString().Replace(',','.')" step="1" style="pointer-events: none;">
+                                                        <button class="btn btn-primary" onclick="addProductToCart('@prodItem.Id', 1)">+</button>
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <button type="button" class="btn btn-primary" onclick="addProductToCart('@prodItem.Id', 1)">В корзину</button>
+                                                }
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+</div>

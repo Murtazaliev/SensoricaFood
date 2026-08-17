@@ -1,0 +1,179 @@
+﻿@model AVBDelivery.ViewModels.ProductListViewModel
+
+@{
+    ViewData["Title"] = "Заказ блюд";
+}
+
+<div class="row">
+    <div class="col">
+        <h1>Меню на @DateTime.Now.ToString("d")</h1>
+    </div>
+    <div class="col p-2 text-end">
+        <img src="~/assets/images/logo-sm.png" alt="logo-small" class="logo-sm" style="max-height:48px">
+        <img src="~/assets/images/logo-dark.png" alt="logo-large" class="logo-lg logo-dark">
+    </div>
+
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-sm">
+                        <thead>
+                            <tr>
+                                <th>Название</th>
+                                <th>Цена</th>
+                                <th class="d-print-none"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+
+                            @foreach (var prodGroup in Model.NomenclatureList.ProductGroup.OrderBy(o => o.GroupName).ToList())
+                            {
+                                if (prodGroup.Products != null)
+                                {
+                                    if (prodGroup.Products.Where(x => x.IsActive == true).ToList().Count > 0)
+                                    {                                    
+                                        <tr>
+                                            <td colspan="3" class="fs-2">
+                                                @prodGroup.GroupName
+                                            </td>
+                                        </tr>
+                                        @foreach (var prodItem in prodGroup.Products.Where(x => x.IsActive == true).OrderBy(o => o.Name).ToList())
+                                        {                                  
+                                                <tr>
+                                                    <td>
+                                                        @prodItem.Name
+                                                    </td>
+                                                    <td>
+                                                        @prodItem.Price  ₽
+                                                    </td>
+                                                    <td id="@prodItem.Id" class="w-25 d-print-none">
+                                                        @if (Model.Order == null)
+                                                        {
+                                                            <button type="button" class="btn btn-primary w-50" onclick="addProductToCart('@prodItem.Id', 1)">В корзину</button>
+                                                        }
+                                                        else
+                                                        {
+                                                            /*Если нашли совпадение */
+                                                            @if (Model.Order.Items.FirstOrDefault(x => x.ProductId == prodItem.Id) != null)
+                                                            {
+                                                                <div class="input-group qty-icons w-50">
+                                                                    <button class="btn btn-primary" onclick="addProductToCart('@prodItem.Id', -0.5)">-</button>
+                                                                    <input id = "input-@prodItem.Id" type="number" class="form-control text-center" min="0" name="quantity" value="@Model.Order.Items.FirstOrDefault(x => x.ProductId == prodItem.Id).Count.ToString().Replace(',','.')" step="0.5" style="pointer-events: none;">
+                                                                    <button class="btn btn-primary" onclick="addProductToCart('@prodItem.Id', 0.5)">+</button>
+                                                                </div>
+                                                            }
+                                                            else
+                                                            {
+                                                                <button type="button" class="btn btn-primary w-50" onclick="addProductToCart('@prodItem.Id', 1)">В корзину</button>
+                                                            }
+
+                                                        }
+                                                    </td>
+                                                </tr>
+                                        }
+                                    }
+                                }
+                            }
+                            
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<button type="button" class="btn btn-primary d-print-none " onclick="window.print()">Печать</button>
+
+<script>
+    // Количество позиций в заказе
+    let countInCart = 0;
+
+    const cartJSON = JSON.parse('{"shoppingCart":[]}');
+
+
+
+
+    // Добавление позиции
+    async function addProductToCart(Id, Count) {
+
+        console.log("Получили запрос при Id=" + Id);
+
+        const response = await fetch("/api/ShoppingCarts", {
+            method: "POST",
+            headers: { "Accept": "application/json", "Content-Type": "application/json" },
+            body: JSON.stringify({
+                ProductId: Id,
+                Count: Count,
+            })
+        });
+        if (response.ok === true) {
+            document.getElementById('countInCart').innerHTML = countInCart;
+            document.getElementById('countInCart2').innerHTML = countInCart;
+
+            cartJSON["shoppingCart"].push({ id: Id });
+            const data = await response.json();
+
+
+            let cart = document.getElementsByClassName('simplebar-content')[1];
+
+            cart.innerHTML = "";
+            document.getElementById('countInCart').innerHTML = data.length;
+            document.getElementById('countInCart2').innerHTML = data.length;
+
+            for (let i = 0; i < data.length; i++) {
+                let newItem = '<a class="dropdown-item py-3" >\
+                            <small class="float-end text-muted ps-2">' + data[i].price * data[i].count + ' ₽</small>\
+                            <div class="media">\
+                                <div class="media-body align-self-center ms-2 text-truncate">\
+                                    <h6 class="my-0 fw-normal text-dark">' + data[i].productName + '</h6>\
+                                    <small class="text-muted mb-0">' + data[i].count + ' порц.</small>\
+                                </div>\
+                            </div>\
+                        </a > ';
+                cart.innerHTML = cart.innerHTML + newItem;
+            }
+
+            let cartCount = '';
+            if (Count == 0.5) {
+
+                let dsfsdfsdf = document.getElementById('input-' + Id);
+                Count = dsfsdfsdf.value + 0.5;
+
+                document.getElementById('input-' + Id).stepUp();
+
+                //dsfsdfsdf.value = Count;
+
+            } else if (Count == -0.5) {
+                let dsfsdfsdf = document.getElementById('input-' + Id);
+                Count = dsfsdfsdf.value - 0.5;
+
+                document.getElementById('input-' + Id).stepDown();
+                //dsfsdfsdf.value = Count;
+            } else {
+                cartCount = '<div class="input-group qty-icons w-50">\
+                <button class="btn btn-primary" onclick="addProductToCart(\'' + Id + '\', -0.5)">-</button>\
+                <input id="input-' + Id + '" type="number" class="form-control text-center" min="0" name="quantity" value="' + Count + '" step="0.5" style="pointer-events: none;">\
+                    <button class="btn btn-primary" onclick="addProductToCart(\'' + Id + '\', 0.5)">+</button>\
+                </div>';
+
+                document.getElementById(Id).innerHTML = cartCount;
+
+            }
+
+
+
+
+        }
+        else {
+            const error = await response.json();
+            console.log(error.message);
+        }
+    }
+
+    addProductToCart("__",0);
+</script>
+

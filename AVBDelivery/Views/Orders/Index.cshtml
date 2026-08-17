@@ -1,0 +1,240 @@
+﻿@model AVBDelivery.ViewModels.OrdersViewModel
+
+@{
+    ViewData["Title"] = "Index";
+}
+
+<h1>История заказов</h1>
+@{
+    // Берём результат из TempData (который выставляем в Create POST)
+    bool? success = null;
+    if (TempData.ContainsKey("OrderResult.Success"))
+    {
+        success = string.Equals(
+            TempData["OrderResult.Success"]?.ToString(),
+            "true",
+            StringComparison.OrdinalIgnoreCase
+        );
+    }
+
+    var msg = TempData["OrderResult.Message"]?.ToString();
+    var orderIdStr = TempData["OrderResult.OrderId"]?.ToString();
+    int orderId;
+    var hasOrderId = int.TryParse(orderIdStr, out orderId);
+}
+
+@if (success != null && !string.IsNullOrWhiteSpace(msg))
+{
+    <div class="modal fade" id="orderResultModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        @(success == true ? "✅ Заказ создан" : "❌ Заказ не создан")
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body">
+                    <p class="mb-0">@msg</p>
+
+                    @* опционально: кнопка "Детали" *@
+                    @if (success == true && hasOrderId)
+                    {
+                        <div class="mt-3">
+                            <a class="btn btn-outline-primary" asp-action="Details" asp-route-id="@orderId">
+                                Открыть детали заказа
+                            </a>
+                        </div>
+                    }
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Ок</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const modalEl = document.getElementById('orderResultModal');
+            const modal = new bootstrap.Modal(modalEl);
+            modal.show();
+        });
+    </script>
+}
+
+<div class=" row">
+    <div class="@*col-sm-4*@">
+        <div class="input-group" id="DateRange">
+            <span class="input-group-text">Поиск заказов с</span>
+            <input class="form-control" type="date" placeholder="Начальная дата" aria-label="StartDate" id="StartDate" style="max-width:150px">
+            <span class="input-group-text">по</span>
+            <input class="form-control" type="date" placeholder="Конечная дата" aria-label="EndDate" id="EndDate" style="max-width:150px">
+            <select class="form-select" id="ItemSelect" onchange="setSelectedValue(this.value)">
+                <option value="-">-</option>
+                @foreach (var item in Model.Organizations)
+                {
+                    <option value="@item.OrganizationId">@item.DeliveryAddress</option>
+                }
+            </select>
+            <button type="button" class="btn btn-primary" onclick="onClick()">Поиск</button>
+        </div>
+    </div>
+</div>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                Время оформления заказа
+            </th>
+            <th>
+                Дата доставки
+            </th>
+            <th>
+                Сумма заказа
+            </th>
+            <th>
+                Сумма со скидкой
+            </th>
+            <th></th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model.Orders)
+        {
+            <tr>
+                <td>
+                    @item.OrderDate.ToString("dd.MM.yyyy HH:mm:ss")
+                </td>
+                <td>
+                    @(item.DeliveryDate.HasValue ? item.DeliveryDate.Value.ToString("dd.MM.yyyy") : "")
+                </td>
+                <td>
+                    @item.Sum
+                </td>
+                <td>
+                    @item.SumWithDiscount
+                </td>
+                <td>
+                    <a asp-action="Details" asp-route-id="@item.Id">Детали заказа</a>             
+                </td>
+                <td>
+                    <form asp-action="RepeatOrder" method="post" asp-route-id="@item.Id">
+                        <button type="submit" class="btn btn-primary">Повторить заказ</button>
+                    </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+@if (Model.PageInfo != null)
+{
+    <nav aria-label="...">
+        <ul class="pagination pagination-sm">
+            @if (Model.PageInfo.PageNumber == 1)
+            {
+                <li class="page-item disabled">
+                    <a class="page-link" href="#">
+                        <span aria-hidden="true">«</span>
+                        <span class="sr-only">Previous</span>
+                    </a>
+                </li>
+            }
+            else
+            {
+                <li class="page-item">
+                    <a class="page-link" href="#" onclick="onPageClick(event, @Model.PageInfo.PageNumber - 1)">
+                        <span aria-hidden="true">«</span>
+                        <span class="sr-only">Previous</span>
+                    </a>
+                </li>
+            }
+            @{
+                var firstPage = 1;
+                if (Model.PageInfo.PageNumber - 2 > 0)
+                {
+                    firstPage = Model.PageInfo.PageNumber - 2;
+                }
+                var lastPage = Model.PageInfo.TotalPages;
+                if (Model.PageInfo.PageNumber + 2 < Model.PageInfo.TotalPages)
+                {
+                    lastPage = Model.PageInfo.PageNumber + 2;
+                }
+            }
+            @for (var currentPage = firstPage; currentPage <= lastPage; currentPage++)
+            {
+                if (currentPage == Model.PageInfo.PageNumber)
+                {
+                    <li class="page-item active" aria-current="page">
+                        <span class="page-link">
+                            @currentPage
+                            <span class="sr-only">(current)</span>
+                        </span>
+                    </li>
+                }
+                else
+                {
+                    <li class="page-item">
+                        <a class="page-link" href="#" onclick="onPageClick(event, @currentPage)">@currentPage</a>
+                    </li>
+                }
+            }
+            @if (Model.PageInfo.PageNumber == Model.PageInfo.TotalPages)
+            {
+                <li class="page-item disabled">
+                    <a class="page-link" href="#">
+                        <span aria-hidden="true">»</span>
+                        <span class="sr-only">Next</span>
+                    </a>
+                </li>
+            }
+            else
+            {
+                <li class="page-item">
+                    <a class="page-link" href="#" onclick="onPageClick(event, @Model.PageInfo.PageNumber + 1)">
+                        <span aria-hidden="true">»</span>
+                        <span class="sr-only">Next</span>
+                    </a>
+                </li>
+            }
+        </ul>
+    </nav>
+}
+<script>
+    const params = new Proxy(new URLSearchParams(window.location.search), {
+        get: (searchParams, prop) => searchParams.get(prop),
+    });
+    document.getElementById('StartDate').value = params.startDate;
+    document.getElementById('EndDate').value = params.endDate;
+    document.getElementById('ItemSelect').value = params.organizationId;
+    let selectedItem = '-';
+    function setSelectedValue(value){
+        selectedItem = value;
+    }
+    function onClick(){
+        if (selectedItem != '-'){
+            window.location = '/Orders?startDate='+document.getElementById('StartDate').value+'&endDate='+document.getElementById('EndDate').value+'&organizationId='+selectedItem;
+        }
+        else{
+            window.location = '/Orders?startDate='+document.getElementById('StartDate').value+'&endDate='+document.getElementById('EndDate').value;
+        }
+    }
+    function onPageClick(event, page){
+        event.preventDefault();
+        let url = '/Orders';
+        if (params.startDate != undefined && params.endDate != undefined){
+            url += '&startDate='+document.getElementById('StartDate').value+'&endDate='+document.getElementById('EndDate').value;
+        }
+        if (params.organizationId != undefined){
+            url += '&organizationId='+document.getElementById('ItemSelect').value;
+        }
+        url += '&page='+page;
+        url = url.replace('&', '?');
+        window.location = url;
+    }
+
+</script>

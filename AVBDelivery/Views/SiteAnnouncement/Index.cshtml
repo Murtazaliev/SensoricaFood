@@ -1,0 +1,33 @@
+﻿@model AVBDelivery.Models.SiteAnnouncement
+@{
+    ViewBag.Title = "Новость";
+}
+
+<h1>Новость</h1>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">
+        @TempData["SuccessMessage"]
+    </div>
+}
+
+<div asp-validation-summary="All" class="text-danger"></div>
+
+<form asp-action="Save" method="post" asp-controller="SiteAnnouncement">
+    @Html.AntiForgeryToken()
+
+    <div class="form-check mb-3">
+        <input class="form-check-input" asp-for="IsEnabled" />
+        <label class="form-check-label" asp-for="IsEnabled">Показывать новость</label>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Text" class="control-label">Новость</label>
+        <textarea asp-for="Text" class="form-control" rows="5"></textarea>
+    </div>
+
+    <div class="form-group mt-2">
+        <input type="submit" value="Сохранить" class="btn btn-primary" />
+    </div>
+</form>

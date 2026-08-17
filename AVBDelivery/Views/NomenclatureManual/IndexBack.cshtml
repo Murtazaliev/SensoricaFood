@@ -1,0 +1,87 @@
+﻿@model AVBDelivery.ViewModels.ProductListViewModel
+
+@{
+    ViewData["Title"] = "Редактор номенклатуры";
+}
+
+<h1>Редактор номенклатуры</h1>
+
+<p>
+    <a class="btn btn-primary " asp-action="Create">Создать номенклатуру</a>
+</p>
+
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Название</th>
+                                <th>Цена</th>
+                                <th>Включено в продажу</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+
+                                @foreach (var prodGroup in Model.NomenclatureList.ProductGroup.OrderBy(o => o.GroupName).ToList())
+                                {
+                                    <tr>
+                                        <td colspan="3" class="fs-2">
+                                            @prodGroup.GroupName
+                                        </td>
+                                    </tr>
+                                    @foreach (var prodItem in prodGroup.Products.OrderBy(o => o.Name).ToList())
+                                    {
+                                        <tr>
+                                            <td>
+                                                @prodItem.Name
+                                            </td>
+                                            <td>
+                                                @prodItem.Price  ₽
+                                            </td>
+                                            <td >
+                                                <div class="form-check form-switch">
+                                                    <input class="form-check-input mt-2" type="checkbox" onchange="toggleCheckbox('@prodItem.Id')" @(prodItem.IsActive ? "checked" : "")>
+                                                </div>                                                
+                                            </td>
+                                            <td>
+                                                <a asp-action="Edit" asp-route-id="@prodItem.Id">Редактировать</a> |
+                                                <a asp-action="Details" asp-route-id="@prodItem.Id">Детали</a> |
+                                                <a asp-action="Delete" asp-route-id="@prodItem.Id">Удалить</a>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function toggleCheckbox(element) {
+        console.log(element);
+
+        const response = await fetch('/api/UpdateMenu/' + element);
+        if (response.ok === true) { 
+            const data = await response.text()
+            if (data === 'Номенклатура не найдена.')
+            {
+                alert("Не удалось обновить номенклатуру. Попробуйте обновить страницу или отредактировать номенклатуру вручную.");
+            }
+            //console.log(data);
+        }
+        else {            
+            //console.log(response);
+        }
+
+    }
+
+</script>

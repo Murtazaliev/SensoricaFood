@@ -1,0 +1,44 @@
+﻿@model AVBDelivery.Models.Product
+
+@{
+    ViewData["Title"] = "Детали";
+}
+
+<h1>Детали</h1>
+
+<div>
+    <h4>Номенклатура</h4>
+    <hr />
+    <dl class="row">
+        <dt class = "col-sm-2">
+            Название
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.Name)
+        </dd>
+        <dt class = "col-sm-2">
+            Группа
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.ParentGroupName)
+        </dd>
+        <dt class="col-sm-2">
+            Цена
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.Price)
+        </dd>
+        <dt class="col-sm-2">
+            Включена в продажу
+        </dt>
+        <dd class="col-sm-10">
+            <div class="form-check form-switch">
+                <input class="form-check-input mt-2" disabled type="checkbox" @(Model.IsActive ? "checked" : "")>
+            </div>
+        </dd>
+    </dl>
+</div>
+<div>
+    <a asp-action="Edit" asp-route-id="@Model.Id">Редактировать</a> |
+    <a asp-action="Index">К списку номенклатуры</a>
+</div>

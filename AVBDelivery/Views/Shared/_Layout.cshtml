@@ -1,0 +1,305 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>@ViewData["Title"] - Заказы</title>
+    <!-- App css -->
+    <link href="~/assets/css/bootstrap-dark.css" rel="stylesheet" type="text/css" />
+    <link href="~/assets/css/icons.min.css" rel="stylesheet" type="text/css" />
+    <link href="~/assets/css/app-dark.css" rel="stylesheet" type="text/css" />
+
+
+
+
+    <!-- App css -->
+    <link href="~/css/site.css" rel="stylesheet" asp-append-version="true" type="text/css" />
+    <script src="~/js/echarts.js"></script>
+
+
+
+
+
+
+
+
+
+</head>
+
+<body id="body" class="">
+    <!-- leftbar-tab-menu -->
+
+    <div class="left-sidebar">
+        <!-- LOGO -->
+        <div class="brand">
+            <a href="/" class="logo">
+
+                <span>
+                    <img src="~/assets/images/logo-yellow-cropped.svg" alt="logo-large" class="logo-lg logo-light">
+                </span>
+            </a>
+        </div>
+        @if (User.Identity?.Name != null)
+        {
+            <div class="sidebar-user-pro media border-end">
+                <div class="position-relative mx-auto">
+                    <img src="~/assets/images/users/user-0.png" alt="user" class="rounded-circle thumb-md">
+                    <span class="online-icon position-absolute end-0"><i class="mdi mdi-record text-success"></i></span>
+                </div>
+                <div class="media-body ms-2 user-detail align-self-center">
+                    <h5 class="font-14 m-0 fw-bold">@User.Identity.Name</h5>
+                </div>
+            </div>
+        }
+        @if (User.IsInRole("admin"))
+        {
+            <div class="border-end">
+                <ul class="nav nav-tabs menu-tab nav-justified" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active" data-bs-toggle="tab" href="#Main" role="tab" aria-selected="true">Г<span>лавная</span></a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab" href="#Extra" role="tab" aria-selected="false">А<span>дминистрирование</span></a>
+                    </li>
+                </ul>
+            </div>
+            <!-- Tab panes -->
+        }
+        <!--end logo-->
+
+        <div class="menu-content h-100" data-simplebar>
+                        <div class="menu-body navbar-vertical">
+                            <div class="collapse navbar-collapse tab-content" id="sidebarCollapse">
+                                <!-- Navigation -->
+                                @if (User.Identity?.Name != null)
+                                {
+                                    <ul class="navbar-nav tab-pane active" id="Main" role="tabpanel">
+                                        @if (User.IsInRole("client"))
+                                        {
+                                            <li class="nav-item">
+                                                <a class="nav-link" href="/ProductList"><i class="mdi mdi-silverware-fork-knife menu-icon"></i><span>Основное меню</span></a>
+                                            </li><!--end nav-item-->
+                                        }
+
+   
+
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="/Orders"><i class="mdi mdi-history menu-icon"></i><span>История заказов</span></a>
+                                        </li><!--end nav-item-->
+
+                                        @if (User.IsInRole("admin") || User.IsInRole("operator"))
+                                        {
+                                            <li class="nav-item">
+                                                <a class="nav-link" href="/Orders/Report"><i class="mdi mdi-view-list menu-icon"></i><span>Сводный заказ</span></a>
+                                            </li><!--end nav-item-->
+                                        }
+
+
+
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="/Users/Profile"><i class="mdi mdi-account-outline menu-icon"></i><span>Профиль</span></a>
+                                        </li>
+                                        </ul>
+                                }
+                                @if (User.IsInRole("admin"))
+                                {
+                                    <ul class="navbar-nav tab-pane" id="Extra" role="tabpanel">
+
+                                        <li class="nav-item">
+                                            <a href="/Users" class="nav-link "><i class="ti ti-users menu-icon"></i><span>Пользователи</span></a>
+                                        </li><!--end nav-item-->
+                                        <li class="nav-item">
+                                            <a href="/Roles" class="nav-link "><i class="ti ti-user-check menu-icon"></i><span>Роли</span></a>
+                                        </li><!--end nav-item-->
+
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="/NomenclatureManual"><i class="mdi mdi-playlist-edit menu-icon"></i><span>Редактор номенклатуры</span></a>
+                                        </li><!--end nav-item-->
+                                        <li class="nav-item">
+                                            <a href="/DBLogs" class="nav-link "><i class="mdi mdi-view-list menu-icon"></i><span>Журнал событий</span></a>
+                                        </li><!--end nav-item-->
+                                        <li class="nav-item">
+                                            <a href="/SiteAnnouncement" class="nav-link "><i class="mdi mdi-newspaper menu-icon"></i><span>Новости</span></a>
+                                        </li><!--end nav-item-->
+                                        <li class="nav-item">
+                                            <a href="/Settings" class="nav-link "><i class="ti ti-settings menu-icon"></i><span>Настройки</span></a>
+                                        </li><!--end nav-item-->
+                                    </ul>
+                                }
+                            </div><!--end sidebarCollapse-->
+            </div>
+        </div>
+    </div>
+    <!-- end left-sidenav-->
+    <!-- end leftbar-menu-->
+    <!-- Top Bar Start -->
+    <!-- Top Bar Start -->
+    <div class="topbar">
+        <!-- Navbar -->
+        <nav class="navbar-custom" id="navbar-custom">
+            <ul class="list-unstyled topbar-nav float-end mb-0">
+
+
+                @if (User.Identity?.Name != null)
+                {
+                    <li class="dropdown notification-list">
+                        <a class="nav-link dropdown-toggle arrow-none nav-icon" data-bs-toggle="dropdown" href="#" role="button" aria-haspopup="false" aria-expanded="false">
+                            <i class="ti ti-shopping-cart"></i>
+                            <span class="alert-badge" id="countInCart">0</span>
+
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end dropdown-lg pt-0">
+                            <h6 class="dropdown-item-text font-15 m-0 py-3 border-bottom d-flex justify-content-between align-items-center">
+                                Корзина <span class="badge bg-soft-primary badge-pill" id="countInCart2">0</span>
+                            </h6>
+                            <div id="cart" class="notification-menu" data-simplebar>
+                                <div class="simplebar-wrapper" style="margin: 0px;">
+                                    <div class="simplebar-height-auto-observer-wrapper"><div class="simplebar-height-auto-observer"></div></div><div class="simplebar-mask">
+                                        <div class="simplebar-offset" style="right: 0px; bottom: 0px;">
+                                            <div class="simplebar-content-wrapper" style="height: auto; overflow: hidden scroll;">
+                                                <div class="simplebar-content" style="padding: 0px;">
+
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div><div class="simplebar-placeholder" style="width: auto; height: 349px;"></div>
+                                </div>
+                            </div>
+                            <!-- All-->
+                            <div id="totalPrice" class="text-center text-dark"> </div>
+                            <a href="/Orders/Create" id="orderCreateLink" class="dropdown-item text-center text-primary">
+                                Оформить заказ <i class="fi-arrow-right"></i>
+                            </a>
+                        </div>
+                    </li>
+                    <li class="dropdown">
+                        <a class="nav-link dropdown-toggle nav-user" data-bs-toggle="dropdown" href="#" role="button"
+                           aria-haspopup="false" aria-expanded="false">
+                            <div class="d-flex align-items-center">
+                                <img src="~/assets/images/users/user-0.png" alt="profile-user" class="rounded-circle me-2 thumb-sm" />
+                                <div>
+                                    @if (User.IsInRole("admin"))
+                                    {
+                                        <small class="d-none d-md-block font-11">Admin</small>
+                                    }
+
+                                    <span class="d-none d-md-block fw-semibold font-12">
+                                        @User.Identity.Name <i class="mdi mdi-chevron-down"></i>
+                                    </span>
+                                </div>
+                            </div>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end">
+                            <a class="dropdown-item" href="/Users/Profile"><i class="ti ti-user font-16 me-1 align-text-bottom"></i> Профиль</a>
+                            <form method="post" asp-controller="Account" asp-action="Logout">
+                                <a class="dropdown-item" href="#" onclick="parentNode.submit();">
+                                    <input type="hidden" name="mess" />
+                                    <i class="ti ti-power font-16 me-1 align-text-bottom" type="submit"></i> Выход
+                                </a>
+                            </form>
+
+                        </div>
+                    </li><!--end topbar-profile-->
+                }
+
+
+
+            </ul><!--end topbar-nav-->
+
+            <ul class="list-unstyled topbar-nav mb-0">
+                <li>
+                    <button class="nav-link button-menu-mobile nav-icon" id="togglemenu">
+                        <i class="ti ti-menu-2"></i>
+                    </button>
+                </li>
+
+
+            </ul>
+        </nav>
+        <!-- end navbar-->
+    </div>
+    <!-- Top Bar End -->
+    <!-- Top Bar End -->
+
+
+    <div class="page-wrapper">
+
+        <!-- Page Content-->
+        <div class="page-content-tab">
+
+            <div class="container-fluid">
+
+
+                @RenderBody()
+            </div><!-- container -->
+            <!--Start Rightbar-->
+            <!--Start Rightbar/offcanvas-->
+            <div class="offcanvas offcanvas-end" tabindex="-1" id="Appearance" aria-labelledby="AppearanceLabel">
+                <div class="offcanvas-header border-bottom">
+                    <h5 class="m-0 font-14" id="AppearanceLabel">Appearance</h5>
+                    <button type="button" class="btn-close text-reset p-0 m-0 align-self-center" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+                </div>
+                <div class="offcanvas-body">
+                    <h6>Account Settings</h6>
+                    <div class="p-2 text-start mt-3">
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" id="settings-switch1">
+                            <label class="form-check-label" for="settings-switch1">Auto updates</label>
+                        </div><!--end form-switch-->
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" id="settings-switch2" checked>
+                            <label class="form-check-label" for="settings-switch2">Location Permission</label>
+                        </div><!--end form-switch-->
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="settings-switch3">
+                            <label class="form-check-label" for="settings-switch3">Show offline Contacts</label>
+                        </div><!--end form-switch-->
+                    </div><!--end /div-->
+                    <h6>General Settings</h6>
+                    <div class="p-2 text-start mt-3">
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" id="settings-switch4">
+                            <label class="form-check-label" for="settings-switch4">Show me Online</label>
+                        </div><!--end form-switch-->
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" id="settings-switch5" checked>
+                            <label class="form-check-label" for="settings-switch5">Status visible to all</label>
+                        </div><!--end form-switch-->
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="settings-switch6">
+                            <label class="form-check-label" for="settings-switch6">Notifications Popup</label>
+                        </div><!--end form-switch-->
+                    </div><!--end /div-->
+                </div><!--end offcanvas-body-->
+            </div>
+            <!--end Rightbar/offcanvas-->
+            <!--end Rightbar-->
+            <!--Start Footer-->
+            <!-- Footer Start -->
+            <footer class="footer text-center text-sm-start">                
+                <script>
+                    document.write(new Date().getFullYear())
+                </script> Заказы<span class="text-muted d-none d-sm-inline-block float-end">
+                </span>
+            </footer>
+            <!-- end Footer -->
+            <!--end footer-->
+        </div>
+        <!-- end page content -->
+    </div>
+    <!-- end page-wrapper -->
+    <!-- Javascript  -->
+
+
+
+    <!-- App js -->
+    <script src="~/assets/js/app.js"></script>
+    <script src="~/js/cart.js"></script>
+
+    @RenderSection("Scripts", required: false)
+</body>
+<!--end body-->
+
+
+</html>

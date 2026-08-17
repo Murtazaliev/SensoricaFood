@@ -1,0 +1,46 @@
+﻿
+@{
+    ViewData["Title"] = "Доступ запрещён";
+}
+
+
+@if (User.Identity.IsAuthenticated)
+{
+    <div class="container-md">
+        <div class="row vh-100 d-flex justify-content-center">
+            <div class="col-12 align-self-center">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-lg-5 mx-auto">
+                            <div class="card">
+                                <div class="card-body p-0 auth-header-box">
+                                    <div class="text-center p-3">
+                                        <a href="index.html" class="logo logo-admin">
+                                            <img src="/assets/images/logo-text-full.png" height="100" alt="logo" class="auth-logo">
+                                        </a>
+                                        <h4 class="mt-3 mb-1 fw-semibold text-white font-18">Упс... Доступ сюда запрещён.</h4>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="ex-page-content text-center">
+                                        <h1 class="mt-5 mb-4">403!</h1>
+                                        <h5 class="font-16 text-muted mb-5">Упс... Доступ сюда запрещён.</h5>
+                                    </div>
+                                    <a class="btn btn-primary w-100" href="/">Вернуться на главную страницу<i class="fas fa-redo ml-1"></i></a>
+                                </div><!--end card-body-->
+                            </div><!--end card-->
+                        </div><!--end col-->
+                    </div><!--end row-->
+                </div><!--end card-body-->
+            </div><!--end col-->
+        </div><!--end row-->
+    </div><!--end container-->
+
+
+}
+else
+{
+    <a asp-controller="Account" asp-action="Login">Вход</a>
+    <a asp-controller="Account" asp-action="Register">Регистрация</a>
+}
+

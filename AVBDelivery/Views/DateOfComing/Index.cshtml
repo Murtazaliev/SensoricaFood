@@ -1,0 +1,38 @@
+﻿@model IEnumerable<AVBDelivery.Models.DateOfComing>
+
+@{
+    ViewData["Title"] = "Index";
+}
+
+<h1>Время посещения</h1>
+
+<p>
+    <a asp-action="Create">Создать</a>
+</p>
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.TimeOnly)
+            </th>
+
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model.OrderBy(x=>x.TimeOnly)) {
+            <tr>
+                <td>
+                        @Html.DisplayFor(modelItem => item.TimeOnly)
+                </td>
+
+                <td>
+                    <a asp-action="Edit" asp-route-id="@item.Id">Редактировать</a> |
+                    <a asp-action="Details" asp-route-id="@item.Id">Детали</a> |
+                    <a asp-action="Delete" asp-route-id="@item.Id">Удалить</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+

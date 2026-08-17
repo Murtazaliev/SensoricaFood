@@ -1,0 +1,104 @@
+﻿@model AVBDelivery.ViewModels.OrderViewModel
+
+@{
+    ViewData["Title"] = "Детали заказа";
+}
+
+<h1>Детали заказа</h1>
+
+<div class="row">
+    <h3>Дата заказа - @Html.DisplayFor(model => model.Order.OrderDate)</h3>
+    <h3>Адрес: @Model.Address</h3>
+    @if (!string.IsNullOrWhiteSpace(Model?.Link))
+    {
+        <h3>
+            Счет:
+            <a href="@Model.Link" target="_blank" rel="noopener noreferrer">
+                @Model.Link
+            </a>
+        </h3>
+    }
+
+</div>
+<div class="row">
+    <div class="col">
+        <div class="card">
+
+
+
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Название</th>
+                                <th>Единица измерения</th>
+                                <th>Цена</th>
+                                <th>Количество</th>
+                                <th>Сумма</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model.Order.Items)
+                            {
+                                <tr>
+                                    <td>
+                                        @item.ProductName
+                                    </td>
+                                    <td>
+                                        @item.MeasureUnit
+                                    </td>
+                                    <td>
+                                        @item.Price  ₽
+                                    </td>
+
+                                    <td>
+                                        @item.Count
+
+                                        @*<button type="button" class="btn btn-primary w-50" onclick="addProductToCart('@item.Id')">В корзину</button>*@
+                                    </td>
+                                    <td>
+                                        @(item.Price * item.Count)  ₽
+                                    </td>
+                                </tr>
+                            }
+                            <tr>
+                                <td>
+                                    <b>Подытог:</b>
+                                </td>
+                                <td>
+                                </td>
+                                <td>
+                                </td>
+                                <td>
+                                    <b>@Model.Order.Sum  ₽</b>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <b>Сумма со скидкой:</b>
+                                </td>
+                                <td>
+                                </td>
+                                <td>
+                                </td>
+                                <td>
+                                    <b>@Model.Order.SumWithDiscount  ₽</b>
+                                </td>
+                            </tr>
+
+                        </tbody>
+                    </table>
+                </div>
+
+
+
+
+
+            </div>
+        </div>
+    </div>
+</div>
+<div>
+    <a asp-action="Index">К истории заказов</a>
+</div>

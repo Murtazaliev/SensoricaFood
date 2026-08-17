@@ -1,0 +1,94 @@
+﻿@model AVBDelivery.ViewModels.OrdersViewModel
+
+@{
+    ViewData["Title"] = "Index";
+}
+
+<h1>История заказов</h1>
+
+
+<div class=" row">
+    <div class="@*col-sm-4*@">
+        <div class="input-group" id="DateRange">
+            <span class="input-group-text">Поиск заказов с</span>
+            <input class="form-control" type="date" placeholder="Начальная дата" aria-label="StartDate" id="StartDate" style="max-width:150px">
+            <span class="input-group-text">по</span>
+            <input class="form-control" type="date" placeholder="Конечная дата" aria-label="EndDate" id="EndDate" style="max-width:150px">
+            <select class="form-select" id="ItemSelect" onchange="setSelectedValue(this.value)">
+                <option value="-">-</option>
+                @foreach (var item in Model.Organizations)
+                {
+                    <option value="@item.OrganizationId">@item.DeliveryAddress</option>
+                }
+            </select>
+            <button type="button" class="btn btn-primary" onclick="onClick()">Поиск</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const params = new Proxy(new URLSearchParams(window.location.search), {
+        get: (searchParams, prop) => searchParams.get(prop),
+    });
+    document.getElementById('StartDate').value = params.startDate;
+    document.getElementById('EndDate').value = params.endDate;
+    document.getElementById('ItemSelect').value = params.organizationId;
+    let selectedItem = '-';
+    function setSelectedValue(value){
+        selectedItem = value;
+    }
+    function onClick(){
+        if (selectedItem != '-'){
+            window.location = '/Orders?startDate='+document.getElementById('StartDate').value+'&endDate='+document.getElementById('EndDate').value+'&organizationId='+selectedItem;
+        }
+        else{
+            window.location = '/Orders?startDate='+document.getElementById('StartDate').value+'&endDate='+document.getElementById('EndDate').value;
+        }
+    }
+
+</script>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                Время оформления заказа
+            </th>
+            <th>
+                Дата доставки
+            </th>
+            <th>
+                Сумма заказа
+            </th>
+            <th></th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model.Orders)
+        {
+            <tr>
+                <td>
+                    @item.OrderDate.ToString("dd.MM.yyyy HH:mm:ss")
+                </td>
+                <td>
+                    @(item.DeliveryDate.HasValue ? item.DeliveryDate.Value.ToString("dd.MM.yyyy HH:mm:ss") : "")
+                </td>
+                <td>
+                    @item.Sum
+                </td>
+                <td>
+                    <a asp-action="Details" asp-route-id="@item.Id">Детали заказа</a>
+                    
+                </td>
+                <td>
+                    <form asp-action="RepeatOrder" method="post" asp-route-id="@item.Id">
+                        <button type="submit" class="btn btn-primary">Повторить заказ</button>
+                    </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+
