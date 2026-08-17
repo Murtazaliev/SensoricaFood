@@ -1,22 +1,93 @@
-## .NET Build Results
+# ==================== .NET Build Results ====================
 [Bb]in/
 [Oo]bj/
-
-## Visual Studio
-.vs/
-*.user
+[Bb]inaries/
+*.dll
+*.exe
+*.pdb
+*.cache
+*.csproj.user
 *.suo
+
+# ==================== Visual Studio ====================
+.vs/
+.idea/
+.vscode/
+
+# Visual Studio 2015/2017 cache/options
 *.userosscache
 *.sln.docstates
 
-## NLog / runtime logs
+# Visual Studio temporary files
+Temporary Projects/
+*.sln.ide
+
+# Visual Studio profiler
+.vs/
+
+# Visual Studio Code
+.vscode/*
+
+# ==================== JetBrains ====================
+.idea/
+*.iml
+*.DotSettings.user
+
+# ==================== Test results ====================
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+*.trx
+*.coverage
+*.coveragexml
+*.coveragex
+
+# ==================== NuGet ====================
+packages/
+*.nupkg
+packages.lock.json
+*.lock.json
+
+# ==================== Logs ====================
+logs/
 Logs/
 *.log
+log.txt
+nlog internal-*.txt
 
-## Misc
+# ==================== User-generated / config ====================
+appsettings.Local.json
+appsettings.local.json
+appsettings.Development.Local.json
+*.user
+*.ini
+
+# ==================== Misc ====================
 *.swp
 *.*~
 ~$*
+*.tmp
+*.bak
+*.orig
+.idea/
+.DS_Store
+Thumbs.db
+Desktop.ini
+node_modules/
 
-## User-specific / runtime config
-appsettings.Local.json
+# ==================== Runtime data ====================
+*.filedb
+*.sqlite
+*.sqlite3
+*.db
+*.ldf
+*.mdf
+
+# ==================== Publish artifacts ====================
+[Pp]ublish/
+*.pubxml
+
+# ==================== Secrets ====================
+*.pfx
+*.key
+secrets.json
+.env
