@@ -5,6 +5,7 @@
     <AssemblyVersion>1.0.0</AssemblyVersion>
 	<Nullable>enable</Nullable>
 	<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+	<UserSecretsId>3dc57d16-8ec1-43fb-82cd-5011e24f86cd</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

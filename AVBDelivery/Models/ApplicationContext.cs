@@ -37,5 +37,33 @@ namespace AVBDelivery.Models
         public DbSet<Note> Notes { get; set; }
 
         public DbSet<SiteAnnouncement> SiteAnnouncements { get; set; }
+
+        public DbSet<Menu> Menus { get; set; }
+        public DbSet<MenuProduct> MenuProducts { get; set; }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<MenuProduct>().HasKey(mp => new { mp.MenuId, mp.ProductId });
+
+            modelBuilder.Entity<MenuProduct>()
+                .HasOne(mp => mp.Menu)
+                .WithMany(m => m.MenuProducts)
+                .HasForeignKey(mp => mp.MenuId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Menu>()
+                .HasMany(m => m.MenuProducts)
+                .WithOne(mp => mp.Menu)
+                .HasForeignKey(mp => mp.MenuId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Organization>()
+                .HasOne(o => o.Menu)
+                .WithMany()
+                .HasForeignKey(o => o.MenuId)
+                .OnDelete(DeleteBehavior.SetNull);
+        }
     }
 }

@@ -1,0 +1,10 @@
+@model AVBDelivery.ViewModels.MenuViewModel
+
+@{
+    ViewData["Title"] = "Создание меню";
+}
+
+<h1>Создание меню</h1>
+<hr />
+
+@await Html.PartialAsync("_Form", Model)

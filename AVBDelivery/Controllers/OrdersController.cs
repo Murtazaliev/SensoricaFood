@@ -370,6 +370,24 @@ namespace AVBDelivery.Controllers
                         }
                     }
 
+                    if (company.MenuId != null)
+                    {
+                        var allowedProductIds = await _context.MenuProducts
+                            .Where(mp => mp.MenuId == company.MenuId)
+                            .Select(mp => mp.ProductId)
+                            .ToListAsync();
+                        var invalidItems = orderCreate.Order.Items
+                            .Where(i => !allowedProductIds.Contains(i.ProductId))
+                            .Select(i => i.ProductName)
+                            .ToList();
+                        if (invalidItems.Count > 0)
+                        {
+                            ModelState.AddModelError("Заказ не создан", $"Меню изменилось. Товары больше не доступны: {string.Join(", ", invalidItems)}. Обновите корзину.");
+                            await WriteToLog(orderCreate, "В корзине товары, отсутствующие в меню организации");
+                            return View(orderCreate);
+                        }
+                    }
+
                     if (orderCreate.Order.Sum < (company.MinimalSum ?? 0))
                     {
                         ModelState.AddModelError("Заказ не создан", $"Заказ не создан. Заказ меньше минимальной суммы. Сумма заказа: {orderCreate.Order.Sum}. Минимальная сумма: {company.MinimalSum}");

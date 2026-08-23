@@ -76,10 +76,12 @@ namespace AVBDelivery.Controllers
         {
             var allContacts = await _context.Contacts.Where(c => c.IsDeleted == false).ToListAsync();
             var allNotes = await _context.Notes.Where(c => c.IsDeleted == false).ToListAsync();
+            var allMenus = await _context.Menus.ToListAsync();
             var viewModel = new OrganizationEditViewModel()
             {
                 AllContacts = allContacts,
                 AllNotes = allNotes,
+                AllMenus = allMenus,
                 UserId = userId,
                 OrganizationId = Guid.NewGuid().ToString()
                 //Organization = new Organization
@@ -114,6 +116,7 @@ namespace AVBDelivery.Controllers
                 Comment = model.Comment,
                 MinimalSum = model.MinimalSum,
                 Discount = model.Discount,
+                MenuId = model.MenuId,
                 Notes = model.Notes
             };
             //var organization = new Organization()
@@ -388,6 +391,7 @@ namespace AVBDelivery.Controllers
                 return NotFound();
             }
             var notes = await _context.Notes.ToListAsync();
+            var allMenus = await _context.Menus.ToListAsync();
             var model = new OrganizationEditViewModel()
             {
                 Name = organization.Name,
@@ -399,6 +403,8 @@ namespace AVBDelivery.Controllers
                 Discount = organization.Discount,
                 IsDeleted = organization.IsDeleted,
                 MinimalSum = organization.MinimalSum,
+                MenuId = organization.MenuId,
+                AllMenus = allMenus,
                 OrganizationId = organizationId,
                 PhoneNumber = organization.PhoneNumber,
                 UserId = userId,
@@ -427,6 +433,7 @@ namespace AVBDelivery.Controllers
             organization.PhoneNumber = model.PhoneNumber;
             organization.MinimalSum = model.MinimalSum;
             organization.Discount = model.Discount;
+            organization.MenuId = model.MenuId;
             if (model.SelectedNoteIds != null)
             {
                 var selectedNotes = await _context.Notes

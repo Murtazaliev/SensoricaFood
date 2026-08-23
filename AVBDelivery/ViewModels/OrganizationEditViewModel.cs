@@ -81,6 +81,11 @@ namespace AVBDelivery.ViewModels
         [DisplayName("Примечание")]
         public string? Note { get; set; }
 
+        [DisplayName("Меню")]
+        public int? MenuId { get; set; }
+
+        public List<Menu> AllMenus { get; set; } = new List<Menu>();
+
         public List<Contact> AllContacts { get; set; }
         public List<Contact> Contacts { get; set; }
         public List<Note> AllNotes { get; set; }
@@ -93,6 +98,7 @@ namespace AVBDelivery.ViewModels
             Contacts = new List<Contact>();
             AllNotes = new List<Note>();
             Notes = new List<Note>();
+            AllMenus = new List<Menu>();
         }
         
     }

@@ -54,6 +54,18 @@ namespace AVBDelivery.Controllers
 
             await GetUserInfo();
 
+            // Фильтрация по персональному меню организации клиента.
+            // null = показывать всё (обратная совместимость).
+            var productFilter = await GetUserMenuFilter();
+            if (productFilter != null)
+            {
+                foreach (var g in nom.ProductGroup)
+                {
+                    g.Products = g.Products.Where(p => productFilter.Contains(p.Id)).ToList();
+                }
+                nom.ProductGroup.RemoveAll(g => g.Products.Count == 0);
+            }
+
             var order = new Order { Items = new() };
             if (_User != null)
             {
@@ -111,6 +123,41 @@ namespace AVBDelivery.Controllers
                 SiteAnnouncement = announcement,
                 ProductImageIndexes = map
             };
+        }
+
+        private async Task<List<string>?> GetUserMenuFilter()
+        {
+            if (_User == null)
+            {
+                return null;
+            }
+
+            var contact = await _context.Contacts
+                .Include(c => c.Organizations)
+                .FirstOrDefaultAsync(c => c.UserId == _User.Id);
+
+            if (contact?.Organizations == null)
+            {
+                return null;
+            }
+
+            var menuIds = contact.Organizations
+                .Where(o => o.MenuId != null)
+                .Select(o => o.MenuId!.Value)
+                .Distinct()
+                .ToList();
+
+            // Все организации без персонального меню (или их нет) — показываем всё.
+            if (menuIds.Count == 0)
+            {
+                return null;
+            }
+
+            return await _context.MenuProducts
+                .Where(mp => menuIds.Contains(mp.MenuId))
+                .Select(mp => mp.ProductId)
+                .Distinct()
+                .ToListAsync();
         }
 
         private async Task<List<int>> GetImageIndexesAsync(string productId)
