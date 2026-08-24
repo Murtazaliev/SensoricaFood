@@ -40,6 +40,7 @@
                href="@BuildUrl(null, Model.Sort, 1)">Сбросить</a>
         </form>
         <small class="text-muted">поиск начинается с 3-го символа</small>
+        @* задержка перед поиском: 1 секунда после последнего символа *@
     </div>
 </div>
 
@@ -141,6 +142,12 @@
 
         if (value.trim().length < 3) return;
 
-        searchTimer = setTimeout(() => goToSearch(value), 1500);
+        searchTimer = setTimeout(() => goToSearch(value), 1000);
     });
+
+    if (searchBox.value) {
+        searchBox.focus();
+        const caretPos = searchBox.value.length;
+        searchBox.setSelectionRange(caretPos, caretPos);
+    }
 </script>
