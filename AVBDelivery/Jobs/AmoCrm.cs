@@ -99,12 +99,19 @@ namespace AVBDelivery.Jobs
             return response;
         }
 
-        public Task<GetCatalogsResponseBody> GetCatalogs() =>
-            ReferenceCache.GetOrCreateAsync("amo:catalogs", e =>
+        public async Task<GetCatalogsResponseBody> GetCatalogs()
+        {
+            if (ReferenceCache.TryGetValue("amo:catalogs", out var cachedCatalogsObj) && cachedCatalogsObj is GetCatalogsResponseBody cachedCatalogs)
             {
-                e.AbsoluteExpirationRelativeToNow = ReferenceTtl;
-                return GetCatalogsUncached();
-            })!;
+                return cachedCatalogs;
+            }
+            var response = await GetCatalogsUncached();
+            if (response != null)
+            {
+                ReferenceCache.Set("amo:catalogs", response, ReferenceTtl);
+            }
+            return response;
+        }
 
         private async Task<GetCatalogsResponseBody> GetCatalogsUncached()
         {
@@ -114,12 +121,20 @@ namespace AVBDelivery.Jobs
             return response;
         }
 
-        public Task<GetCustomFieldsResponseBody> GetCustomFields(int? catalogId) =>
-            ReferenceCache.GetOrCreateAsync($"amo:catalog:{catalogId}:fields", e =>
+        public async Task<GetCustomFieldsResponseBody> GetCustomFields(int? catalogId)
+        {
+            var key = $"amo:catalog:{catalogId}:fields";
+            if (ReferenceCache.TryGetValue(key, out var cachedFieldsObj) && cachedFieldsObj is GetCustomFieldsResponseBody cachedFields)
             {
-                e.AbsoluteExpirationRelativeToNow = ReferenceTtl;
-                return GetCustomFieldsUncached(catalogId);
-            })!;
+                return cachedFields;
+            }
+            var response = await GetCustomFieldsUncached(catalogId);
+            if (response != null)
+            {
+                ReferenceCache.Set(key, response, ReferenceTtl);
+            }
+            return response;
+        }
 
         private async Task<GetCustomFieldsResponseBody> GetCustomFieldsUncached(int? catalogId)
         {
@@ -307,12 +322,19 @@ namespace AVBDelivery.Jobs
 
 
         #region Leads
-        public Task<GetCustomFieldsResponseBody> GetLeadsCustomFields() =>
-            ReferenceCache.GetOrCreateAsync("amo:leads:fields", e =>
+        public async Task<GetCustomFieldsResponseBody> GetLeadsCustomFields()
+        {
+            if (ReferenceCache.TryGetValue("amo:leads:fields", out var cachedLeadFieldsObj) && cachedLeadFieldsObj is GetCustomFieldsResponseBody cachedLeadFields)
             {
-                e.AbsoluteExpirationRelativeToNow = ReferenceTtl;
-                return GetLeadsCustomFieldsUncached();
-            })!;
+                return cachedLeadFields;
+            }
+            var response = await GetLeadsCustomFieldsUncached();
+            if (response != null)
+            {
+                ReferenceCache.Set("amo:leads:fields", response, ReferenceTtl);
+            }
+            return response;
+        }
 
         private async Task<GetCustomFieldsResponseBody> GetLeadsCustomFieldsUncached()
         {
@@ -375,12 +397,19 @@ namespace AVBDelivery.Jobs
             var response = await SendRequestAsync<CreateLeadLinkResponseBody>(request, "Create lead link");
             return response;
         }
-        public Task<GetLeadPipelinesResponseBody> GetLeadPipelines() =>
-            ReferenceCache.GetOrCreateAsync("amo:leads:pipelines", e =>
+        public async Task<GetLeadPipelinesResponseBody> GetLeadPipelines()
+        {
+            if (ReferenceCache.TryGetValue("amo:leads:pipelines", out var cachedPipelinesObj) && cachedPipelinesObj is GetLeadPipelinesResponseBody cachedPipelines)
             {
-                e.AbsoluteExpirationRelativeToNow = ReferenceTtl;
-                return GetLeadPipelinesUncached();
-            })!;
+                return cachedPipelines;
+            }
+            var response = await GetLeadPipelinesUncached();
+            if (response != null)
+            {
+                ReferenceCache.Set("amo:leads:pipelines", response, ReferenceTtl);
+            }
+            return response;
+        }
 
         private async Task<GetLeadPipelinesResponseBody> GetLeadPipelinesUncached()
         {

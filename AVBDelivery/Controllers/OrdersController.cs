@@ -56,6 +56,10 @@ namespace AVBDelivery.Controllers
         {
             await GetUserInfo();
             int pageSize = 20;
+            if (page < 1)
+            {
+                page = 1;
+            }
             var organizations = new List<Organization>();
             if (_Roles.Contains("admin"))
             {

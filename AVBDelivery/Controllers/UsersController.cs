@@ -31,6 +31,10 @@ namespace AVBDelivery.Controllers
         public async Task<IActionResult> Index(string? q, string? sort, int page = 1)
         {
             const int pageSize = 20;
+            if (page < 1)
+            {
+                page = 1;
+            }
             var model = new UsersViewModel();
 
             var descending = sort != null && sort.EndsWith("_desc", StringComparison.Ordinal);
