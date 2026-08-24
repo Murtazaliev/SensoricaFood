@@ -34,7 +34,29 @@ namespace AVBDelivery.Controllers
         public async Task<IActionResult> Index()
         {
             var nom = new Nomenclature();
-            nom.ProductGroup = await _context.ProductGroups.Include(x => x.Products).ToListAsync();
+            nom.ProductGroup = await _context.ProductGroups
+                .Select(g => new ProductGroup
+                {
+                    Id = g.Id,
+                    GroupName = g.GroupName,
+                    Products = g.Products.Select(p => new Product
+                    {
+                        Id = p.Id,
+                        Name = p.Name,
+                        Price = p.Price,
+                        Type = p.Type,
+                        IsActive = p.IsActive,
+                        ParentGroupName = p.ParentGroupName,
+                        ProductInBlackList = p.ProductInBlackList,
+                        MeasureUnit = p.MeasureUnit,
+                        Sku = p.Sku,
+                        Description = p.Description,
+                        AmoCrmId = p.AmoCrmId,
+                        FullEnergy = p.FullEnergy,
+                        PortionGram = p.PortionGram
+                    }).ToList()
+                })
+                .ToListAsync();
 
             //var nom = await _context.Nomenclature.Include(x => x.ProductGroup).ThenInclude(x => x.Products).Include(x => x.Products).ToListAsync();
 
