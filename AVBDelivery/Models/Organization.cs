@@ -56,6 +56,10 @@ namespace AVBDelivery.Models
 
         public ICollection<Note> Notes { get; set; } = new List<Note>();
 
+        [DisplayName("Меню")]
+        public int? MenuId { get; set; }
+        public Menu? Menu { get; set; }
+
         public decimal CalculateDiscount()
         {
             decimal discountValue = 1.0m - ((Discount ?? 0) / 100);

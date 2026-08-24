@@ -91,3 +91,5 @@ node_modules/
 *.key
 secrets.json
 .env
+/sensorica work.xlsx
+/docs/menus-feature.md
