@@ -10,6 +10,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
 
 namespace AVBDelivery
@@ -34,12 +35,13 @@ namespace AVBDelivery
                     var userManager = services.GetRequiredService<UserManager<User>>();
                     var rolesManager = services.GetRequiredService<RoleManager<IdentityRole>>();
                     var context = services.GetService<ApplicationContext>();
-                    
+
+                    await context.Database.MigrateAsync();
                     await RoleInitializer.InitializeAsync(userManager, rolesManager, context);
                 }
                 catch (Exception ex)
                 {
-                    NLogger.Error(ex, $"Произошла ошибка при первоначальном заполнении БД пользователями.\n{ex.Message}\n{ex.InnerException}");
+                    NLogger.Error(ex, $"пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ.\n{ex.Message}\n{ex.InnerException}");
                 }
 
                 

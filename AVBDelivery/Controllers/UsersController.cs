@@ -27,27 +27,80 @@ namespace AVBDelivery.Controllers
             _context = context;
         }
 
-        //public IActionResult Index() => View(_userManager.Users.ToList());
         [Authorize(Roles = "admin")]
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string? q, string? sort, int page = 1)
         {
+            const int pageSize = 20;
             var model = new UsersViewModel();
-            var usersWithClients = new List<UserWithClient>();
-            var users = _userManager.Users.ToList();
-            foreach (var user in users)
+
+            var descending = sort != null && sort.EndsWith("_desc", StringComparison.Ordinal);
+            var sortKey = descending ? sort![..^"_desc".Length] : sort;
+
+            IQueryable<User> usersQuery = _userManager.Users.AsNoTracking();
+
+            if (!string.IsNullOrWhiteSpace(q))
             {
-                var userWithClient = new UserWithClient
-                {
-                    User = user
-                };
-                var contact = await _context.Contacts.FirstOrDefaultAsync(c => c.UserId == user.Id);
-                if (contact != null)
-                {
-                    userWithClient.Contact = contact;
-                }
-                usersWithClients.Add(userWithClient);
+                var pattern = $"%{q.Trim()}%";
+                var matchedUserIds = _context.Contacts
+                    .Where(c =>
+                        (c.Name != null && EF.Functions.Like(c.Name, pattern)) ||
+                        c.Organizations.Any(o => !o.IsDeleted && o.Inn != null && EF.Functions.Like(o.Inn, pattern)))
+                    .Select(c => c.UserId);
+                usersQuery = usersQuery.Where(u => matchedUserIds.Contains(u.Id));
             }
-            model.UsersWithClients = usersWithClients;
+
+            usersQuery = (sortKey, descending) switch
+            {
+                ("name", false) => usersQuery.OrderBy(u => _context.Contacts
+                    .Where(c => c.UserId == u.Id)
+                    .Select(c => c.Name)
+                    .FirstOrDefault()),
+                ("name", true) => usersQuery.OrderByDescending(u => _context.Contacts
+                    .Where(c => c.UserId == u.Id)
+                    .Select(c => c.Name)
+                    .FirstOrDefault()),
+                ("login", false) => usersQuery.OrderBy(u => u.Email),
+                ("login", true) => usersQuery.OrderByDescending(u => u.Email),
+                _ => usersQuery.OrderBy(u => u.UserName)
+            };
+
+            var totalItems = await usersQuery.CountAsync();
+
+            var usersOnPage = await usersQuery
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var userIds = usersOnPage.Select(u => u.Id).ToList();
+            var contacts = await _context.Contacts
+                .Include(c => c.Organizations)
+                .Where(c => c.UserId != null && userIds.Contains(c.UserId))
+                .ToListAsync();
+            var contactsByUserId = contacts
+                .GroupBy(c => c.UserId!)
+                .ToDictionary(g => g.Key, g => g.First());
+
+            model.UsersWithClients = usersOnPage
+                .Select(u =>
+                {
+                    contactsByUserId.TryGetValue(u.Id, out var contact);
+                    return new UserWithClient
+                    {
+                        User = u,
+                        Contact = contact
+                    };
+                })
+                .ToList();
+
+            model.PageInfo = new PageInfo
+            {
+                PageNumber = page,
+                PageSize = pageSize,
+                TotalItems = totalItems
+            };
+            model.Query = q;
+            model.Sort = sort;
+
             return View(model);
         }
 

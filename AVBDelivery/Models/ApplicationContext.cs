@@ -14,8 +14,6 @@ namespace AVBDelivery.Models
         public ApplicationContext(DbContextOptions<ApplicationContext> options)
             : base(options)
         {
-            Database.Migrate();
-
             //Database.EnsureCreated();
         }
         public DbSet<WorkingHours> WorkingHours { get; set; }
@@ -64,6 +62,10 @@ namespace AVBDelivery.Models
                 .WithMany()
                 .HasForeignKey(o => o.MenuId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<Product>()
+                .HasIndex(p => p.AmoCrmId)
+                .HasDatabaseName("IX_Products_AmoCrmId");
         }
     }
 }

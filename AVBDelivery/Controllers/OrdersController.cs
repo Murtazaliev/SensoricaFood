@@ -89,6 +89,10 @@ namespace AVBDelivery.Controllers
             }
             
 
+            var totalOrders = await _context.Orders
+                .Where(predicate)
+                .CountAsync();
+
             var orders = await _context.Orders
                 .Where(predicate)
                 .OrderByDescending(o => o.OrderDate)
@@ -100,7 +104,7 @@ namespace AVBDelivery.Controllers
             {
                 PageNumber = page,
                 PageSize = pageSize,
-                TotalItems = orders.Count
+                TotalItems = totalOrders
             };
             model.Orders = orders;
             model.PageInfo = pageInfo;
@@ -118,12 +122,24 @@ namespace AVBDelivery.Controllers
         {
             await GetUserInfo();
 
-            List<Order> orders = await _context.Orders.Include(x => x.Items).Where(x => x.OrderDate >= DateTime.Today & x.OrderDate < DateTime.Today.AddDays(1)).ToListAsync();
+            var orders = await _context.Orders
+                .Include(x => x.Items)
+                .Where(x => x.OrderDate >= DateTime.Today & x.OrderDate < DateTime.Today.AddDays(1))
+                .AsNoTracking()
+                .ToListAsync();
+
+            var userIds = orders.Select(o => o.UserId).Distinct().ToList();
+            var userNames = await _context.Users
+                .Where(u => userIds.Contains(u.Id))
+                .Select(u => new { u.Id, u.UserName })
+                .ToDictionaryAsync(u => u.Id, u => u.UserName);
 
             foreach (var item in orders)
             {
-                var t = await _userManager.FindByIdAsync(item.UserId);
-                item.UserId = t.UserName;
+                if (userNames.TryGetValue(item.UserId, out var userName))
+                {
+                    item.UserId = userName;
+                }
             }
             return orders;
         }
@@ -976,9 +992,16 @@ namespace AVBDelivery.Controllers
             List<string> notAdded = new List<string>();
 
             //Проверка на то, существует ли товар в амо
+            var repeatProductIds = order.Items.Select(i => i.ProductId).Distinct().ToList();
+            var productAmoIds = await _context.Products
+                .Where(p => repeatProductIds.Contains(p.Id))
+                .Select(p => new { p.Id, p.AmoCrmId })
+                .ToDictionaryAsync(p => p.Id, p => p.AmoCrmId);
+
             foreach (var item in order.Items)
             {
-                item.AmoCrmId = (await _context.Products.FirstOrDefaultAsync(p => p.Id == item.ProductId))?.AmoCrmId;
+                productAmoIds.TryGetValue(item.ProductId, out var amoId);
+                item.AmoCrmId = amoId;
                 if (item.AmoCrmId == null)
                 {
                     notAdded.Add(item.ProductName);

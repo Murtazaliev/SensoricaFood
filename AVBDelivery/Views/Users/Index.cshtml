@@ -4,11 +4,52 @@
     ViewBag.Title = "Список пользователей";
 }
 
-<a class="btn btn-sm btn-primary" asp-action="Create">Добавить пользователя</a>
+@functions {
+    string BuildUrl(string? q, string? sort, int page)
+    {
+        var query = System.Web.HttpUtility.ParseQueryString(string.Empty);
+        if (!string.IsNullOrWhiteSpace(q)) { query["q"] = q.Trim(); }
+        if (!string.IsNullOrWhiteSpace(sort)) { query["sort"] = sort; }
+        if (page > 1) { query["page"] = page.ToString(); }
+        var qs = query.ToString();
+        return string.IsNullOrEmpty(qs) ? "/Users" : "/Users?" + qs;
+    }
 
+    string SortLink(string key, string label, string currentSort)
+    {
+        var desc = currentSort == key + "_desc";
+        var asc = currentSort == key;
+        var nextSort = asc ? key + "_desc" : key;
+        var arrow = asc ? " ▲" : (desc ? " ▼" : "");
+        return $"<a href=\"{BuildUrl(Model.Query, nextSort, 1)}\" style=\"text-decoration:none;color:inherit\">{label}{arrow}</a>";
+    }
+}
+
+<div class="d-flex justify-content-end">
+    <a class="btn btn-sm btn-primary" asp-action="Create">Добавить пользователя</a>
+</div>
+
+<div class="row mt-2 mb-2">
+    <div class="col">
+        <form class="input-group" onsubmit="return false;">
+            <span class="input-group-text">Поиск</span>
+            <input class="form-control" type="text" id="searchBox" autocomplete="off"
+                   placeholder="Имя или логин организации (от 3 символов)" style="max-width:320px"
+                   value="@Model.Query">
+            <a class="btn btn-outline-secondary @(string.IsNullOrWhiteSpace(Model.Query) ? "d-none" : "")"
+               href="@BuildUrl(null, Model.Sort, 1)">Сбросить</a>
+        </form>
+        <small class="text-muted">поиск начинается с 3-го символа</small>
+    </div>
+</div>
 
 <table class="table">
-    <tr><th>Имя</th><th>Логин</th><th>Существует в AmoCRM</th><th></th></tr>
+    <tr>
+        <th>@Html.Raw(SortLink("name", "Имя", Model.Sort ?? ""))</th>
+        <th>@Html.Raw(SortLink("login", "Логин", Model.Sort ?? ""))</th>
+        <th>Существует в AmoCRM</th>
+        <th></th>
+    </tr>
     @if (Model.UsersWithClients != null){
         foreach (var user in Model.UsersWithClients)
         {
@@ -30,5 +71,76 @@
             </tr>
         }
     }
-    
+
 </table>
+
+@if (Model.PageInfo != null && Model.PageInfo.TotalPages > 1)
+{
+    <nav aria-label="Страницы">
+        <ul class="pagination pagination-sm">
+            @if (Model.PageInfo.PageNumber == 1)
+            {
+                <li class="page-item disabled"><span class="page-link">&lt;</span></li>
+            }
+            else
+            {
+                <li class="page-item"><a class="page-link" href="@BuildUrl(Model.Query, Model.Sort, Model.PageInfo.PageNumber - 1)">&lt;</a></li>
+            }
+            @{
+                var firstPage = Math.Max(1, Model.PageInfo.PageNumber - 2);
+                var lastPage = Math.Min(Model.PageInfo.TotalPages, Model.PageInfo.PageNumber + 2);
+            }
+            @for (var currentPage = firstPage; currentPage <= lastPage; currentPage++)
+            {
+                if (currentPage == Model.PageInfo.PageNumber)
+                {
+                    <li class="page-item active" aria-current="page"><span class="page-link">@currentPage</span></li>
+                }
+                else
+                {
+                    <li class="page-item"><a class="page-link" href="@BuildUrl(Model.Query, Model.Sort, currentPage)">@currentPage</a></li>
+                }
+            }
+            @if (Model.PageInfo.PageNumber >= Model.PageInfo.TotalPages)
+            {
+                <li class="page-item disabled"><span class="page-link">&gt;</span></li>
+            }
+            else
+            {
+                <li class="page-item"><a class="page-link" href="@BuildUrl(Model.Query, Model.Sort, Model.PageInfo.PageNumber + 1)">&gt;</a></li>
+            }
+        </ul>
+    </nav>
+}
+
+<script>
+    const searchParams = new Proxy(new URLSearchParams(window.location.search), {
+        get: (sp, prop) => sp.get(prop),
+    });
+    const searchBox = document.getElementById('searchBox');
+    let searchTimer = null;
+
+    function goToSearch(value) {
+        const url = new URL('/Users', window.location.origin);
+        if (value && value.trim().length >= 3) url.searchParams.set('q', value.trim());
+        const sort = searchParams.sort;
+        if (sort) url.searchParams.set('sort', sort);
+        window.location = url.toString();
+    }
+
+    searchBox.addEventListener('input', function () {
+        clearTimeout(searchTimer);
+        const value = this.value;
+
+        if (value.trim().length === 0) {
+            if (searchParams.q !== undefined && searchParams.q !== null && searchParams.q !== '') {
+                searchTimer = setTimeout(() => goToSearch(''), 300);
+            }
+            return;
+        }
+
+        if (value.trim().length < 3) return;
+
+        searchTimer = setTimeout(() => goToSearch(value), 1500);
+    });
+</script>

@@ -16,6 +16,7 @@ using AVBDelivery.Models.AmoCrm.Responses;
 using Azure;
 using Microsoft.CodeAnalysis.Elfie.Serialization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Identity.Client;
@@ -48,6 +49,9 @@ namespace AVBDelivery.Jobs
             _logger = logger;
             _apiUrl = string.Format("https://{0}.amocrm.ru", configuration["AmoCrmApi:Subdomain"]);
         }
+
+        private static readonly MemoryCache ReferenceCache = new MemoryCache(new MemoryCacheOptions());
+        private static readonly TimeSpan ReferenceTtl = TimeSpan.FromMinutes(15);
         private async Task<string?> TryGetAccessToken()
         {
             var settings = await _context.Settings.FirstOrDefaultAsync();
@@ -95,7 +99,14 @@ namespace AVBDelivery.Jobs
             return response;
         }
 
-        public async Task<GetCatalogsResponseBody> GetCatalogs()
+        public Task<GetCatalogsResponseBody> GetCatalogs() =>
+            ReferenceCache.GetOrCreateAsync("amo:catalogs", e =>
+            {
+                e.AbsoluteExpirationRelativeToNow = ReferenceTtl;
+                return GetCatalogsUncached();
+            })!;
+
+        private async Task<GetCatalogsResponseBody> GetCatalogsUncached()
         {
             var endpoint = $"{_apiUrl}/api/v4/catalogs";
             var request = new HttpRequestMessage(HttpMethod.Get, endpoint);
@@ -103,7 +114,14 @@ namespace AVBDelivery.Jobs
             return response;
         }
 
-        public async Task<GetCustomFieldsResponseBody> GetCustomFields(int? catalogId)
+        public Task<GetCustomFieldsResponseBody> GetCustomFields(int? catalogId) =>
+            ReferenceCache.GetOrCreateAsync($"amo:catalog:{catalogId}:fields", e =>
+            {
+                e.AbsoluteExpirationRelativeToNow = ReferenceTtl;
+                return GetCustomFieldsUncached(catalogId);
+            })!;
+
+        private async Task<GetCustomFieldsResponseBody> GetCustomFieldsUncached(int? catalogId)
         {
             var endpoint = $"{_apiUrl}/api/v4/catalogs/{catalogId}/custom_fields";
             var request = new HttpRequestMessage(HttpMethod.Get, endpoint);
@@ -289,7 +307,14 @@ namespace AVBDelivery.Jobs
 
 
         #region Leads
-        public async Task<GetCustomFieldsResponseBody> GetLeadsCustomFields()
+        public Task<GetCustomFieldsResponseBody> GetLeadsCustomFields() =>
+            ReferenceCache.GetOrCreateAsync("amo:leads:fields", e =>
+            {
+                e.AbsoluteExpirationRelativeToNow = ReferenceTtl;
+                return GetLeadsCustomFieldsUncached();
+            })!;
+
+        private async Task<GetCustomFieldsResponseBody> GetLeadsCustomFieldsUncached()
         {
             var endpoint = $"{_apiUrl}/api/v4/leads/custom_fields";
             var request = new HttpRequestMessage(HttpMethod.Get, endpoint);
@@ -350,7 +375,14 @@ namespace AVBDelivery.Jobs
             var response = await SendRequestAsync<CreateLeadLinkResponseBody>(request, "Create lead link");
             return response;
         }
-        public async Task<GetLeadPipelinesResponseBody> GetLeadPipelines()
+        public Task<GetLeadPipelinesResponseBody> GetLeadPipelines() =>
+            ReferenceCache.GetOrCreateAsync("amo:leads:pipelines", e =>
+            {
+                e.AbsoluteExpirationRelativeToNow = ReferenceTtl;
+                return GetLeadPipelinesUncached();
+            })!;
+
+        private async Task<GetLeadPipelinesResponseBody> GetLeadPipelinesUncached()
         {
             var endpoint = $"{_apiUrl}/api/v4/leads/pipelines";
             var request = new HttpRequestMessage(HttpMethod.Get, endpoint);

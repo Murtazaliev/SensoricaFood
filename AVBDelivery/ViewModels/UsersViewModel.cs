@@ -7,6 +7,9 @@ namespace AVBDelivery.ViewModels
     public class UsersViewModel
     {
         public List<UserWithClient>? UsersWithClients { get; set; }
+        public PageInfo? PageInfo { get; set; }
+        public string? Query { get; set; }
+        public string? Sort { get; set; }
     }
     public class UserWithClient
     {

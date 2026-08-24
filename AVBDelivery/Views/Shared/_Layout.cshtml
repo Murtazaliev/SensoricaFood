@@ -28,6 +28,20 @@
 </head>
 
 <body id="body" class="">
+    @{
+        var requestPath = Context.Request.Path.Value ?? string.Empty;
+        var adminPrefixes = new[]
+        {
+            "/Users", "/Roles", "/NomenclatureManual", "/Menus", "/DBLogs",
+            "/SiteAnnouncement", "/Settings", "/Organizations", "/IikoServers",
+            "/EmailTemplates", "/WorkingHours", "/DateOfComing", "/Notes"
+        };
+        var isAdminSection = adminPrefixes.Any(p =>
+            requestPath.Equals(p, StringComparison.OrdinalIgnoreCase) ||
+            requestPath.StartsWith(p + "/", StringComparison.OrdinalIgnoreCase));
+        var isProfilePage = requestPath.StartsWith("/Users/Profile", StringComparison.OrdinalIgnoreCase);
+        var showAdminTab = isAdminSection && !isProfilePage;
+    }
     <!-- leftbar-tab-menu -->
 
     <div class="left-sidebar">
@@ -57,10 +71,10 @@
             <div class="border-end">
                 <ul class="nav nav-tabs menu-tab nav-justified" role="tablist">
                     <li class="nav-item">
-                        <a class="nav-link active" data-bs-toggle="tab" href="#Main" role="tab" aria-selected="true">Г<span>лавная</span></a>
+                        <a class="nav-link@(!showAdminTab ? " active" : "")" data-bs-toggle="tab" href="#Main" role="tab" aria-selected="@(!showAdminTab ? "true" : "false")">Г<span>лавная</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" data-bs-toggle="tab" href="#Extra" role="tab" aria-selected="false">А<span>дминистрирование</span></a>
+                        <a class="nav-link@(showAdminTab ? " active" : "")" data-bs-toggle="tab" href="#Extra" role="tab" aria-selected="@(showAdminTab ? "true" : "false")">А<span>дминистрирование</span></a>
                     </li>
                 </ul>
             </div>
@@ -74,7 +88,7 @@
                                 <!-- Navigation -->
                                 @if (User.Identity?.Name != null)
                                 {
-                                    <ul class="navbar-nav tab-pane active" id="Main" role="tabpanel">
+                                    <ul class="navbar-nav tab-pane@(!showAdminTab ? " active" : "")" id="Main" role="tabpanel">
                                         @if (User.IsInRole("client"))
                                         {
                                             <li class="nav-item">
@@ -104,7 +118,7 @@
                                 }
                                 @if (User.IsInRole("admin"))
                                 {
-                                    <ul class="navbar-nav tab-pane" id="Extra" role="tabpanel">
+                                    <ul class="navbar-nav tab-pane@(showAdminTab ? " active" : "")" id="Extra" role="tabpanel">
 
                                         <li class="nav-item">
                                             <a href="/Users" class="nav-link "><i class="ti ti-users menu-icon"></i><span>Пользователи</span></a>

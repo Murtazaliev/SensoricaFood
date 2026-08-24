@@ -46,7 +46,27 @@ namespace AVBDelivery.Controllers
             var nom = new Nomenclature
             {
                 ProductGroup = await _context.ProductGroups
-                    .Include(x => x.Products)
+                    .Select(g => new ProductGroup
+                    {
+                        Id = g.Id,
+                        GroupName = g.GroupName,
+                        Products = g.Products.Select(p => new Product
+                        {
+                            Id = p.Id,
+                            Name = p.Name,
+                            Price = p.Price,
+                            Type = p.Type,
+                            IsActive = p.IsActive,
+                            ParentGroupName = p.ParentGroupName,
+                            ProductInBlackList = p.ProductInBlackList,
+                            MeasureUnit = p.MeasureUnit,
+                            Sku = p.Sku,
+                            Description = p.Description,
+                            AmoCrmId = p.AmoCrmId,
+                            FullEnergy = p.FullEnergy,
+                            PortionGram = p.PortionGram
+                        }).ToList()
+                    })
                     .ToListAsync()
             };
 
