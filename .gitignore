@@ -93,3 +93,4 @@ secrets.json
 .env
 /sensorica work.xlsx
 /docs/menus-feature.md
+*.zip
