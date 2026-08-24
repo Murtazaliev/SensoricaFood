@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Drawing.Printing;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Security.Claims;
@@ -24,10 +23,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using MimeKit.Encodings;
-using NetVips;
 using NuGet.Packaging;
-using Org.BouncyCastle.Math.EC.Rfc7748;
-using Polly;
 
 namespace AVBDelivery.Controllers
 {
