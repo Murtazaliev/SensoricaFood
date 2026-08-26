@@ -5,6 +5,8 @@ using System.Threading.Tasks;
 using AVBDelivery.Interfaces;
 using AVBDelivery.Jobs;
 using AVBDelivery.Models;
+using AVBDelivery.Services;
+using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
@@ -33,11 +35,11 @@ namespace AVBDelivery
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            // Добавляем сервис валидатора пароля
+            // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
             services.AddTransient<IPasswordValidator<User>,
                     CustomPasswordValidator>(serv => new CustomPasswordValidator(6));
 
-            // Валидация имени пользователя
+            // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
             services.AddTransient<IUserValidator<User>, CustomUserValidator>();
             
             services.AddDbContext<ApplicationContext>(options =>
@@ -52,8 +54,8 @@ namespace AVBDelivery
             });
 
             services.AddIdentity<User, IdentityRole>(opts => {
-                opts.User.RequireUniqueEmail = true;    // уникальный email
-                opts.User.AllowedUserNameCharacters = ".@abcdefghijklmnopqrstuvwxyz1234567890"; // допустимые символы
+                opts.User.RequireUniqueEmail = true;    // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ email
+                opts.User.AllowedUserNameCharacters = ".@abcdefghijklmnopqrstuvwxyz1234567890"; // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
             })
             .AddEntityFrameworkStores<ApplicationContext>()
             .AddDefaultTokenProviders(); ;
@@ -108,6 +110,9 @@ namespace AVBDelivery
             });
 
             services.AddMemoryCache();
+
+            services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<Program>());
+            services.AddScoped<ICurrentUserService, CurrentUserService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -126,7 +131,7 @@ namespace AVBDelivery
 
             app.UseRouting();
 
-            app.UseAuthentication();    // подключение аутентификации
+            app.UseAuthentication();    // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
             app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>

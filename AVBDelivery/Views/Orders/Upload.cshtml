@@ -18,7 +18,7 @@
 
 @if (Model.OrderGroups == null || Model.OrderGroups.Count == 0)
 {
-    <form asp-action="Upload" method="post" enctype="multipart/form-data">
+    <form asp-action="Upload" method="post" enctype="multipart/form-data" id="uploadForm">
         <div class="row">
             <div class="col-md-6">
                 <div class="card">
@@ -27,7 +27,10 @@
                             <label for="file" class="form-label">Выберите xlsx-файл заказа</label>
                             <input type="file" class="form-control" id="file" name="file" accept=".xlsx" required />
                         </div>
-                        <button type="submit" class="btn btn-primary">Загрузить</button>
+                        <button type="submit" class="btn btn-primary" id="uploadBtn" disabled>
+                            <span class="spinner-border spinner-border-sm d-none" id="uploadSpinner" role="status"></span>
+                            Загрузить
+                        </button>
                     </div>
                 </div>
             </div>
@@ -57,7 +60,7 @@ else
         </div>
     }
 
-    <form asp-action="ConfirmUpload" method="post">
+    <form asp-action="ConfirmUpload" method="post" id="confirmForm">
         @foreach (var group in Model.OrderGroups)
         {
             <div class="card mb-4">
@@ -128,8 +131,82 @@ else
             <a asp-action="Upload" class="btn btn-secondary me-2">Загрузить другой файл</a>
             <button type="submit" class="btn btn-primary btn-lg"
                     @(Model.OrderGroups.Any(g => g.OrganizationFound && g.Items.Any(i => i.IsFound && i.Quantity > 0)) ? "" : "disabled")>
+                <span class="spinner-border spinner-border-sm d-none" id="confirmSpinner" role="status"></span>
                 Создать заказы
             </button>
         </div>
     </form>
+}
+
+@section Scripts {
+    <style>
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+        .loading-overlay.active {
+            display: flex;
+        }
+        .loading-overlay .overlay-content {
+            background: #1e2130;
+            border: 1px solid #313548;
+            border-radius: 12px;
+            padding: 2rem 3rem;
+            text-align: center;
+            color: #b8c0d1;
+        }
+        .loading-overlay .spinner-border {
+            width: 3rem;
+            height: 3rem;
+            color: #f0c040;
+        }
+    </style>
+
+    <div id="uploadOverlay" class="loading-overlay">
+        <div class="overlay-content">
+            <div class="spinner-border mb-3" role="status"></div>
+            <p class="mb-0 fw-semibold">Загрузка и парсинг файла...</p>
+            <small class="text-muted">Поиск товаров и организаций в базе</small>
+        </div>
+    </div>
+
+    <div id="confirmOverlay" class="loading-overlay">
+        <div class="overlay-content">
+            <div class="spinner-border mb-3" role="status"></div>
+            <p class="mb-0 fw-semibold">Создание заказов...</p>
+            <small class="text-muted">Отправка в amoCRM</small>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            var fileInput = document.getElementById('file');
+            var uploadBtn = document.getElementById('uploadBtn');
+            if (fileInput && uploadBtn) {
+                fileInput.addEventListener('change', function () {
+                    uploadBtn.disabled = !fileInput.files.length;
+                });
+            }
+
+            function bindForm(formId, overlayId) {
+                var form = document.getElementById(formId);
+                var overlay = document.getElementById(overlayId);
+                if (form && overlay) {
+                    form.addEventListener('submit', function () {
+                        overlay.classList.add('active');
+                        form.querySelectorAll('button, input[type="text"], input[type="number"], input[type="email"], input[type="password"], select, textarea').forEach(function (el) {
+                            el.disabled = true;
+                        });
+                    });
+                }
+            }
+            bindForm('uploadForm', 'uploadOverlay');
+            bindForm('confirmForm', 'confirmOverlay');
+        })();
+    </script>
 }

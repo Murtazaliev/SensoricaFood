@@ -96,49 +96,7 @@ namespace AVBDelivery.Jobs
                     throw new Exception("Отсутствует список товаров в AmoCrm");
                 }
 
-                var products = await _context.Products.ToListAsync();
-                var group = await _context.ProductGroups.AsNoTracking().ToListAsync();
-                var nomenclature = await _context.Nomenclature.FirstOrDefaultAsync();
-
-                if (!(group == nomenclature?.ProductGroup && products == nomenclature?.Products))
-                {
-                    if (products != null)
-                    {
-                        _logger.LogInformation($"Удаляем продукты. Их {products.Count}.");
-                        _context.Products.RemoveRange(products);
-                        await _context.SaveChangesAsync();
-                        _logger.LogInformation("Продукты удалены.");
-                    }
-
-                    group = await _context.ProductGroups.Include(x => x.Products).ToListAsync();
-                    if (group != null)
-                    {
-                        _logger.LogInformation($"Удаляем группы. Их {group.Count}");
-                        foreach (var item in group)
-                        {
-                            if (item.Products.Count == 0)
-                            {
-                                _logger.LogInformation($"Удаляем группу \"{item.GroupName}\", т.к. в ней нет ручной номенклатуры.");
-                                _context.ProductGroups.RemoveRange(item);
-                            }
-                        }
-                        await _context.SaveChangesAsync();
-                    }
-                }
-
-                string defaultGroupId = Guid.NewGuid().ToString();
-                var defaultGroup = new ProductGroup
-                {
-                    GroupName = "Товары",
-                    Id = defaultGroupId,
-                    Products = new List<Product>()
-                };
-
-                await _context.ProductGroups.AddAsync(defaultGroup);
-                await _context.SaveChangesAsync();
-                _logger.LogInformation("Создана группа по умолчанию");
-
-                _logger.LogInformation("Получаем настройки аккаунт");
+                _logger.LogInformation("Получаем настройки аккаунта");
                 var accountInfo = await _amoCrm.GetAccountInfo();
                 _amoCrm.DriveUrl = accountInfo?.DriveUrl;
 
@@ -147,27 +105,27 @@ namespace AVBDelivery.Jobs
                     AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(2)
                 };
 
+                var stagingGroups = new Dictionary<string, ProductGroup>();
+                var stagingProducts = new List<Product>();
+                string defaultGroupId = Guid.NewGuid().ToString();
+
                 foreach (var product in amoCrmProducts)
                 {
                     var amoProductGroup = product.CustomFieldsValues?.FirstOrDefault(g => g.FieldCode == "GROUP");
                     var amoProductGroupEnumId = amoProductGroup?.Values?.FirstOrDefault()?.EnumId;
                     var groupId = amoProductGroupEnumId == null ? defaultGroupId : amoProductGroupEnumId.ToString();
 
-                    var dbGroup = await _context.ProductGroups.FirstOrDefaultAsync(g => g.Id == groupId);
-                    if (dbGroup == null)
+                    if (!stagingGroups.ContainsKey(groupId))
                     {
-                        dbGroup = new ProductGroup
+                        stagingGroups[groupId] = new ProductGroup
                         {
                             Id = groupId,
                             GroupName = (amoProductGroup?.Values?.FirstOrDefault()?.Value)?.ToString() ?? "Группа",
                             Products = new List<Product>()
                         };
-                        await _context.ProductGroups.AddAsync(dbGroup);
-                        await _context.SaveChangesAsync();
-                        _logger.LogInformation($"Создана группа {dbGroup.GroupName}");
                     }
 
-                    var customFieldValues = product.CustomFieldsValues; // CustomFieldValues[] ?
+                    var customFieldValues = product.CustomFieldsValues;
 
                     var descriptionFieldValue = customFieldValues?.FirstOrDefault(f => f.FieldCode == "DESCRIPTION")?.Values?.FirstOrDefault()?.Value;
                     var description = descriptionFieldValue?.ToString() ?? "";
@@ -187,12 +145,11 @@ namespace AVBDelivery.Jobs
                     var skuFieldValue = customFieldValues?.FirstOrDefault(f => f.FieldCode == "SKU")?.Values?.FirstOrDefault()?.Value;
                     var sku = skuFieldValue?.ToString() ?? "";
 
-                    // --------- MULTI-IMAGE: все file-поля и все values ---------
                     var productId = product.Id.ToString();
 
                     var fileFields = (customFieldValues ?? Array.Empty<CustomFieldValues>())
                         .Where(f => f.FieldType == "file")
-                        .OrderByDescending(f => f.FieldCode == "IMAGE") // IMAGE первым
+                        .OrderByDescending(f => f.FieldCode == "IMAGE")
                         .ToList();
 
                     var seenFileUuids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -231,18 +188,16 @@ namespace AVBDelivery.Jobs
                         cacheOptions
                     );
 
-                    // Главная (первая) — опционально пишем в БД для совместимости
                     byte[]? mainImage = null;
                     if (indexes.Count > 0)
                         mainImage = await _distributedCache.GetAsync($"prod:{productId}:img:{indexes[0]}");
-                    // ----------------------------------------------------------
 
                     var productToCreate = new Product
                     {
                         AmoCrmId = product.Id,
                         Description = description,
                         Id = productId,
-                        ParentGroupName = dbGroup.GroupName,
+                        ParentGroupName = stagingGroups[groupId].GroupName,
                         Price = price,
                         MeasureUnit = measureUnit,
                         Name = product.Name,
@@ -255,22 +210,42 @@ namespace AVBDelivery.Jobs
                         Image = mainImage
                     };
 
-                    dbGroup.Products.Add(productToCreate);
-                    _logger.LogInformation($"Добавлен товар {productToCreate.Name}");
+                    stagingGroups[groupId].Products.Add(productToCreate);
+                    stagingProducts.Add(productToCreate);
+                    _logger.LogInformation($"Загружен в staging: {productToCreate.Name}");
                 }
 
-                var defGroup = await _context.ProductGroups.FirstOrDefaultAsync(g => g.Id == defaultGroupId);
-                if (defGroup != null && defGroup.Products.Count == 0)
+                _logger.LogInformation($"Из AmoCRM загружено {stagingProducts.Count} товаров в {stagingGroups.Count} групп. Начинаем обновление БД.");
+
+                var existingProducts = await _context.Products.ToListAsync();
+                _context.Products.RemoveRange(existingProducts);
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("Старые продукты удалены из БД.");
+
+                var existingGroups = await _context.ProductGroups.Include(x => x.Products).ToListAsync();
+                foreach (var item in existingGroups)
                 {
-                    _context.ProductGroups.Remove(defGroup);
+                    if (item.Products.Count == 0)
+                    {
+                        _context.ProductGroups.Remove(item);
+                    }
                 }
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("Пустые группы удалены из БД.");
+
+                foreach (var groupPair in stagingGroups)
+                {
+                    await _context.ProductGroups.AddAsync(groupPair.Value);
+                }
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("Новые группы добавлены в БД.");
 
                 await _context.SaveChangesAsync();
-                _logger.LogInformation("Обмен завершен");
+                _logger.LogInformation("Обмен завершен успешно.");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex.ToString());
+                _logger.LogError(ex, "Ошибка при обмене номенклатуры. БД осталась без изменений.");
                 return "done";
             }
 
