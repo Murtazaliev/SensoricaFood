@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Security.Claims;
@@ -14,6 +15,7 @@ using AVBDelivery.Models.AmoCrm.Requests;
 using AVBDelivery.ViewModels;
 using LinqKit;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
@@ -1034,6 +1036,392 @@ namespace AVBDelivery.Controllers
                 AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(2)
             });
             return RedirectToAction("Create");
+        }
+
+
+        [Authorize(Roles = "client")]
+        public async Task<IActionResult> Upload()
+        {
+            await GetUserInfo();
+            return View(new OrderUploadPreviewViewModel());
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "client")]
+        public async Task<IActionResult> Upload(IFormFile file)
+        {
+            await GetUserInfo();
+
+            if (file == null || file.Length == 0)
+            {
+                ModelState.AddModelError("", "Файл не выбран.");
+                return View(new OrderUploadPreviewViewModel());
+            }
+
+            try
+            {
+                OfficeOpenXml.ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
+
+                using var stream = new MemoryStream();
+                await file.CopyToAsync(stream);
+                stream.Position = 0;
+
+                using var package = new OfficeOpenXml.ExcelPackage(stream);
+                var ws = package.Workbook.Worksheets.FirstOrDefault();
+                if (ws == null)
+                {
+                    ModelState.AddModelError("", "Файл не содержит листов.");
+                    return View(new OrderUploadPreviewViewModel());
+                }
+
+                int totalCol = ws.Dimension?.End?.Column ?? 0;
+                int totalRow = ws.Dimension?.End?.Row ?? 0;
+
+                if (totalCol < 4 || totalRow < 2)
+                {
+                    ModelState.AddModelError("", "Файл не содержит данных.");
+                    return View(new OrderUploadPreviewViewModel());
+                }
+
+                int itogoCol = 0;
+                for (int c = 1; c <= totalCol; c++)
+                {
+                    var val = ws.Cells[1, c].Text?.Trim();
+                    if (val != null && (val.Equals("Итого", StringComparison.OrdinalIgnoreCase) || val.Equals("Total", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        itogoCol = c;
+                        break;
+                    }
+                }
+
+                int lastDataCol = itogoCol > 0 ? itogoCol - 1 : totalCol;
+
+                var locationHeaders = new List<(int Col, string Header)>();
+                for (int c = 4; c <= lastDataCol; c++)
+                {
+                    var header = ws.Cells[1, c].Text?.Trim();
+                    if (!string.IsNullOrWhiteSpace(header))
+                    {
+                        locationHeaders.Add((c, header));
+                    }
+                }
+
+                if (locationHeaders.Count == 0)
+                {
+                    ModelState.AddModelError("", "Не найдены колонки с адресами (ожидались с 4-й колонки).");
+                    return View(new OrderUploadPreviewViewModel());
+                }
+
+                var allProducts = await _context.Products.Where(p => p.IsActive).ToListAsync();
+
+                var userContacts = await _context.Contacts
+                    .Where(c => c.UserId == _User.Id)
+                    .Include(c => c.Organizations)
+                    .ToListAsync();
+                var userOrgs = userContacts.SelectMany(c => c.Organizations ?? new List<Organization>()).ToList();
+
+                var model = new OrderUploadPreviewViewModel
+                {
+                    SheetName = ws.Name,
+                    UnmatchedNames = new List<string>()
+                };
+
+                foreach (var loc in locationHeaders)
+                {
+                    var matchedOrg = userOrgs.FirstOrDefault(o =>
+                        !string.IsNullOrEmpty(o.Comment) && o.Comment.Contains(loc.Header));
+
+                    var group = new OrderGroupByLocation
+                    {
+                        ColumnHeader = loc.Header,
+                        OrganizationId = matchedOrg?.OrganizationId,
+                        OrganizationName = matchedOrg?.Name,
+                        OrganizationFound = matchedOrg != null
+                    };
+
+                    for (int r = 2; r <= totalRow; r++)
+                    {
+                        var nameCell = ws.Cells[r, 1].Text?.Trim();
+                        if (string.IsNullOrWhiteSpace(nameCell)) continue;
+                        if (nameCell.Equals("Итого", StringComparison.OrdinalIgnoreCase)) continue;
+
+                        var qtyCell = ws.Cells[r, loc.Col].Value;
+                        double qty = 0;
+                        if (qtyCell != null)
+                        {
+                            if (qtyCell is double d) qty = d;
+                            else double.TryParse(qtyCell.ToString(), out qty);
+                        }
+
+                        var product = allProducts.FirstOrDefault(p => p.Name == nameCell)
+                                      ?? allProducts.FirstOrDefault(p => p.Name.Contains(nameCell) || nameCell.Contains(p.Name));
+
+                        group.Items.Add(new MatchedOrderItem
+                        {
+                            FileName = nameCell,
+                            ProductId = product?.Id,
+                            ProductName = product?.Name,
+                            Price = product?.Price,
+                            MeasureUnit = product?.MeasureUnit,
+                            AmoCrmId = product?.AmoCrmId,
+                            Quantity = qty,
+                            IsFound = product != null
+                        });
+
+                        if (product == null && !model.UnmatchedNames.Contains(nameCell))
+                        {
+                            model.UnmatchedNames.Add(nameCell);
+                        }
+                    }
+
+                    model.OrderGroups.Add(group);
+                }
+
+                var jsonData = System.Text.Json.JsonSerializer.Serialize(model);
+                await _cache.SetStringAsync($"upload:{_User.Id}:preview", jsonData, new DistributedCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10)
+                });
+
+                return View(model);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка чтения xlsx файла");
+                ModelState.AddModelError("", $"Ошибка чтения файла: {ex.Message}");
+                return View(new OrderUploadPreviewViewModel());
+            }
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "client")]
+        public async Task<IActionResult> ConfirmUpload()
+        {
+            await GetUserInfo();
+
+            var cachedJson = await _cache.GetStringAsync($"upload:{_User.Id}:preview");
+            if (string.IsNullOrEmpty(cachedJson))
+            {
+                TempData["OrderResult.Success"] = false;
+                TempData["OrderResult.Message"] = "Данные загрузки устели. Загрузите файл заново.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var model = System.Text.Json.JsonSerializer.Deserialize<OrderUploadPreviewViewModel>(cachedJson);
+            await _cache.RemoveAsync($"upload:{_User.Id}:preview");
+
+            if (model == null || model.OrderGroups.Count == 0)
+            {
+                TempData["OrderResult.Success"] = false;
+                TempData["OrderResult.Message"] = "Нет данных для создания заказов.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var createdOrderIds = new List<int>();
+
+            foreach (var group in model.OrderGroups.Where(g => g.OrganizationFound))
+            {
+                var validItems = group.Items.Where(i => i.IsFound && i.Quantity > 0).ToList();
+                if (validItems.Count == 0) continue;
+
+                try
+                {
+                    var company = await _context.Organizations
+                        .Include(o => o.Notes)
+                        .FirstOrDefaultAsync(o => o.OrganizationId == group.OrganizationId);
+                    if (company == null) continue;
+
+                    double discount = OrderHelper.GetDiscount(company);
+
+                    var order = new Order
+                    {
+                        UserId = _User.Id,
+                        OrganizationId = group.OrganizationId,
+                        OrderDate = DateTime.Now,
+                        DeliveryDate = DateTime.Today.AddDays(1),
+                        Items = validItems.Select(i => new OrderItem
+                        {
+                            ProductId = i.ProductId,
+                            ProductName = i.ProductName,
+                            Count = i.Quantity,
+                            Price = Math.Round(i.Price ?? 0, 2),
+                            MeasureUnit = i.MeasureUnit,
+                            AmoCrmId = i.AmoCrmId
+                        }).ToList(),
+                        Sum = validItems.Sum(i => Math.Round((double)(i.Price ?? 0) * i.Quantity, 2))
+                    };
+
+                    if (order.Sum < (company.MinimalSum ?? 0))
+                    {
+                        await WriteToLog(new OrderCreateViewModel { Order = order },
+                            $"Заказ не создан (загрузка xlsx). Сумма {order.Sum} < минимальной {company.MinimalSum}. Локация: {group.ColumnHeader}");
+                        continue;
+                    }
+
+                    if (company.MenuId != null)
+                    {
+                        var allowedProductIds = await _context.MenuProducts
+                            .Where(mp => mp.MenuId == company.MenuId)
+                            .Select(mp => mp.ProductId)
+                            .ToListAsync();
+                        var invalidItems = order.Items
+                            .Where(i => !allowedProductIds.Contains(i.ProductId))
+                            .Select(i => i.ProductName)
+                            .ToList();
+                        if (invalidItems.Count > 0)
+                        {
+                            await WriteToLog(new OrderCreateViewModel { Order = order },
+                                $"Заказ не создан (загрузка xlsx). Товары не в меню: {string.Join(", ", invalidItems)}");
+                            continue;
+                        }
+                    }
+
+                    if (discount != 1)
+                    {
+                        order.SumWithDiscount = Math.Round(order.Sum.Value * discount);
+                    }
+                    else
+                    {
+                        order.SumWithDiscount = order.Sum;
+                    }
+
+                    var contact = await _context.Contacts.FirstOrDefaultAsync(c => c.UserId == _User.Id);
+                    if (contact?.AmoCrmId == null || company.AmoCrmId == null)
+                    {
+                        await WriteToLog(new OrderCreateViewModel { Order = order },
+                            "Заказ не создан (загрузка xlsx). Отсутствует контакт или компания в AmoCRM.");
+                        continue;
+                    }
+
+                    var catalogs = await _amoCrm.GetCatalogs();
+                    var catalogId = catalogs?.Embedded.Catalogs?.FirstOrDefault(c => c.Type == "products")?.Id;
+                    var customFields = catalogId != null ? await _amoCrm.GetCustomFields(catalogId) : null;
+                    var priceFieldId = customFields?.Embedded?.CustomFields?.FirstOrDefault(f => f.Code == "PRICE")?.Id;
+
+                    var leadCustomFields = (await _amoCrm.GetLeadsCustomFields()).Embedded.CustomFields;
+                    var deliveryDateField = leadCustomFields.FirstOrDefault(f => f.Name == "Дата доставки");
+                    var deliveryTimeField = leadCustomFields.FirstOrDefault(f => f.Name == "Время для буднего");
+                    var deliveryWeekendTimeField = leadCustomFields.FirstOrDefault(f => f.Name == "Время для выходного");
+                    var notesField = leadCustomFields.FirstOrDefault(f => f.Name == "Примечание");
+
+                    var lead = new Lead
+                    {
+                        Price = (int)(order.SumWithDiscount),
+                        Embedded = new LeadEmbedded
+                        {
+                            CatalogElements = Array.Empty<CatalogElement>(),
+                            Contacts = [new LeadContact { Id = int.Parse(contact.AmoCrmId) }],
+                            Companies = [new LeadCompany { Id = int.Parse(company.AmoCrmId) }]
+                        }
+                    };
+
+                    var pipelines = await _amoCrm.GetLeadPipelines();
+                    var newClientPipeline = pipelines.Embedded.Pipelines.FirstOrDefault(p => p.Id == 9457550);
+                    var userHaveOrder = await _context.Orders.AnyAsync(o => o.UserId == _User.Id && o.Id != 0);
+                    if (!userHaveOrder && newClientPipeline != null)
+                    {
+                        lead.PipelineId = newClientPipeline.Id;
+                    }
+
+                    var customFieldsToCreate = new List<CustomFieldValues>();
+                    if (deliveryDateField != null)
+                    {
+                        var dateUnix = new DateTimeOffset(order.DeliveryDate ?? DateTime.UtcNow).ToUnixTimeSeconds();
+                        customFieldsToCreate.Add(new CustomFieldValues
+                        {
+                            FieldId = deliveryDateField.Id,
+                            Values = [new ElementValue { Value = dateUnix.ToString() }]
+                        });
+                    }
+                    if (deliveryTimeField != null)
+                    {
+                        customFieldsToCreate.Add(new CustomFieldValues
+                        {
+                            FieldId = deliveryTimeField.Id,
+                            Values = [new ElementValue { Value = company.DeliveryTime }]
+                        });
+                    }
+                    if (deliveryWeekendTimeField != null)
+                    {
+                        customFieldsToCreate.Add(new CustomFieldValues
+                        {
+                            FieldId = deliveryWeekendTimeField.Id,
+                            Values = [new ElementValue { Value = company.DeliveryWeekendTime }]
+                        });
+                    }
+                    if (notesField != null && company.Notes.Count > 0)
+                    {
+                        customFieldsToCreate.Add(new CustomFieldValues
+                        {
+                            FieldId = notesField.Id,
+                            Values = company.Notes.Select(n => new ElementValue { EnumId = n.AmoCrmId }).ToArray()
+                        });
+                    }
+                    if (customFieldsToCreate.Any())
+                    {
+                        lead.CustomFieldsValues = customFieldsToCreate.ToArray();
+                    }
+
+                    var createdLeadBody = await _amoCrm.CreateLeads([lead]);
+                    var createdLead = createdLeadBody?.Embedded?.Leads?.FirstOrDefault();
+
+                    if (createdLead != null && catalogId != null)
+                    {
+                        var links = validItems.Select(i => new Link
+                        {
+                            ToEntityId = i.AmoCrmId ?? 0,
+                            ToEntityType = "catalog_elements",
+                            Metadata = new LinkMetadata
+                            {
+                                Catalog_id = catalogId ?? 0,
+                                Quantity = (float)Math.Round(i.Quantity, 2)
+                            }
+                        }).ToList();
+                        await _amoCrm.CreateLeadLink(links, createdLead.Id);
+
+                        var updatedLead = new Lead
+                        {
+                            Id = createdLead.Id,
+                            Price = (int)order.SumWithDiscount
+                        };
+                        await _amoCrm.UpdateLeads([updatedLead]);
+                    }
+
+                    order.AmoCrmId = createdLead?.Id;
+                    _context.Orders.Add(order);
+                    await _context.SaveChangesAsync();
+                    createdOrderIds.Add(order.Id);
+
+                    var dbLog = new DBLog
+                    {
+                        DateTime = order.OrderDate,
+                        Message = $"Создан заказ (загрузка xlsx, локация: {group.ColumnHeader})",
+                        User = User.Identity.Name,
+                        Level = "INFO"
+                    };
+                    await _context.DBLog.AddAsync(dbLog);
+                    await _context.SaveChangesAsync();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Ошибка создания заказа для локации {Location}", group.ColumnHeader);
+                    await WriteToLog(new OrderCreateViewModel { Order = new Order { OrganizationId = group.OrganizationId } },
+                        $"Ошибка создания заказа (загрузка xlsx): {ex.Message}");
+                }
+            }
+
+            if (createdOrderIds.Count > 0)
+            {
+                TempData["OrderResult.Success"] = true;
+                TempData["OrderResult.Message"] = $"Создано заказов: {createdOrderIds.Count} (№{string.Join(", №", createdOrderIds)})";
+            }
+            else
+            {
+                TempData["OrderResult.Success"] = false;
+                TempData["OrderResult.Message"] = "Заказы не созданы. Проверьте минимальную сумму и меню.";
+            }
+
+            return RedirectToAction(nameof(Index));
         }
 
 
