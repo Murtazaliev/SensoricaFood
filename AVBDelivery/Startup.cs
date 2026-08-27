@@ -91,7 +91,7 @@ namespace AVBDelivery
                     .AddJob<NomenclatureUploaderJob>(o => o.WithIdentity("NomenclatureUploader"))
                     .AddTrigger(o => o.ForJob("NomenclatureUploader")
                         .WithIdentity("NomenclatureUploader-trigger")
-                        .WithCronSchedule(Configuration["Quartz:NomenclatureUploader"])
+                        .WithCronSchedule(Configuration["Quartz:NomenclatureUploader"] ?? "0 0 9 * * ?")
                         .UsingJobData("apiKey", Configuration["TransportApi:ApiKey"])
                         .StartNow()
                     )
