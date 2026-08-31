@@ -180,11 +180,11 @@ namespace AVBDelivery.Features.Orders.CreateOrder
             var customFieldsToCreate = new List<CustomFieldValues>();
             if (deliveryDateField != null)
             {
-                var dateUnix = new DateTimeOffset(orderCreate.Order.DeliveryDate ?? DateTime.UtcNow).ToUnixTimeSeconds();
+                var deliveryDate = orderCreate.Order.DeliveryDate ?? DateTime.Now;
                 customFieldsToCreate.Add(new CustomFieldValues
                 {
                     FieldId = deliveryDateField.Id,
-                    Values = [new ElementValue { Value = orderCreate.Order.DeliveryDate.HasValue ? dateUnix.ToString() : "" }]
+                    Values = [new ElementValue { Value = new DateTimeOffset(deliveryDate).ToString("yyyy-MM-ddTHH:mm:sszzz") }]
                 });
             }
             if (deliveryTimeField != null)

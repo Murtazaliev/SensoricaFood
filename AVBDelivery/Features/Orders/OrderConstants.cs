@@ -26,6 +26,8 @@ namespace AVBDelivery.Features.Orders
 
             public const int NewClientPipelineId = 9457550;
 
+            public const long InvoiceLinkFieldId = 964597;
+
             public static class LeadFields
             {
                 public const string DeliveryDate = "Дата доставки";

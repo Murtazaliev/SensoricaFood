@@ -148,11 +148,11 @@ namespace AVBDelivery.Features.Orders.ConfirmUpload
                     var customFieldsToCreate = new List<CustomFieldValues>();
                     if (deliveryDateField != null)
                     {
-                        var dateUnix = new DateTimeOffset(order.DeliveryDate ?? DateTime.UtcNow).ToUnixTimeSeconds();
+                        var deliveryDate = order.DeliveryDate ?? DateTime.Now;
                         customFieldsToCreate.Add(new CustomFieldValues
                         {
                             FieldId = deliveryDateField.Id,
-                            Values = [new ElementValue { Value = dateUnix.ToString() }]
+                            Values = [new ElementValue { Value = new DateTimeOffset(deliveryDate).ToString("yyyy-MM-ddTHH:mm:sszzz") }]
                         });
                     }
                     if (deliveryTimeField != null)
